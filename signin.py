@@ -11,19 +11,16 @@ from requests.exceptions import ReadTimeout
 # Constants: the URLs
 url_class = 'http://192.168.16.85//Services/SmartBoard/SmartBoardSingInClass/json'
 url_student_new = 'http://192.168.16.85//Services/SmartBoard/SmartBoardLoadSingInStudentNew/json'
-url_course_state = 'http://192.168.16.88//Services/SmartBoard/SmartBoardUpdateSingCourseState/json'
-url_leave_info = 'http://192.168.16.88//Services/SmartBoard/SmartBoardGetStudentLeaveInfo/json'
-url_card_info = 'http://192.168.16.250//Services/SmartBoard/SmartBoardUploadStudentCardInfo/json'
+url_card_info = 'http://192.168.16.85//Services/SmartBoard/SmartBoardUploadStudentCardInfo/json'
 # Constant: the user-agent to use
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'
-# Name of process
-process_name = 'GS.Terminal.SmartBoard.exe'
 # ID of people who don't need to dk
 no_dk = { '9b37b535-5103-4656-8a76-3ed4aa736736' }
 # IP address of the card machine
-host = '192.168.5.143'
+host = '192.168.25.77'
 # The port to use for listening
 port = 8512
+# The socket for communication
 
 def make_date_str(ct):
     return str(ct.tm_year) + '-' + "%02d" % ct.tm_mon + '-' + "%02d" % ct.tm_mday
@@ -47,7 +44,6 @@ def send_req(sess, headers, body, url):
         headers = headers,
         data = json.dumps(body, ensure_ascii = False, separators = (',', ':')).encode('utf-8')
     ).prepare()
-    print(prep.body)
     try:
         return sess.send(prep, timeout = 10).json()
     except ReadTimeout:
@@ -76,7 +72,7 @@ def get_kid(sess, time):
             if time == 1 and start_time == 17: return lesson['KeChengAnPaiID']
             if time == 2 and start_time == 20: return lesson['KeChengAnPaiID']
     except KeyError:
-        print('bad reply in get_kid', file = sys.stderr)
+        print_err('bad reply in get_kid')
     # Not found, must return None
     return None
 
@@ -101,54 +97,14 @@ def get_stuinfo(sess, time, kid):
     try:
         return [(s["StudentID"], s["Invalid"]) for s in resp["result"]["students"]]
     except KeyError:
-        print('Bad return value in get_stuinfo', file = sys.stderr)
+        print_err('Bad return value in get_stuinfo')
         return []
 
-def send_state4(sess, kid):
-    '''
-    POSTs UpdateSingCourse with state: 4
-    '''
-    head = {'Expect': '100-continue', 'Connection': 'keep-alive', 'user-agent': user_agent}
-    body = {
-        'tCode': 'NJ303',
-        'kid': str(kid),
-        'state': 4
-    }
-    resp = send_req(sess, head, body, url_course_state)
-    if 'result' in resp and resp['result'] == True:
-        pass
-    else:
-        print('Bad reply from server in start_dk()', file = sys.stderr)
+def print_norm(s):
+    conn.send((json.dumps({'info': s, 'type': 'info', 'time': mktime(localtime())}) + '+').encode('utf-8'))
 
-def send_state5(sess, kid):
-    ''' POSTs UpdateSingCourse with state of 5 '''
-    head = {'Expect': '100-continue', 'Connection': 'keep-alive', 'user-agent': user_agent}
-    body = {
-        'tCode': 'NJ303',
-        'kid': str(kid),
-        'state': 5
-    }
-    resp = send_req(sess, head, body, url_course_state)
-    if 'result' in resp and resp['result'] == True:
-        pass
-    else:
-        print('Bad reply from server in end_dk()', file = sys.stderr)
-
-def get_leave_info(sess, kid, ids_left):
-    '''
-    POSTs leave_info page with ids_left as parameter.
-    ids_left should be a list of people who don't need to DK and those not at school.
-    '''
-    head = {'Expect': '100-continue', 'user-agent': user_agent}
-    ct = localtime()
-    body = {
-        'courseid': kid,
-        'coursedate': make_date_str(ct) + 'T00:00:00',
-        'studentids': ids_left
-    }
-    resp = send_req(sess, head, body, url_leave_info)
-    if 'result' not in resp:
-        print('Bad server reply in GetStudentLeaveInfo', file = sys.stderr)
+def print_err(s):
+    conn.send((json.dumps({'error': s, 'type': 'error', 'time': mktime(localtime())}) + '+').encode('utf-8'))
 
 def make_mili():
     mili = str(randrange(1, 10000000))
@@ -226,7 +182,7 @@ def upload_card_info(sess, kid, ids_left, all_stu, time):
     if 'result' in resp and resp['result'] == True:
         pass
     else:
-        print('Bad server reply in upload_card_info()', file = sys.stderr)
+        print_err('Bad server reply in upload_card_info()')
 
 def make_time_struct(ct, hour, minute, second):
     return struct_time((
@@ -256,52 +212,51 @@ def handle_dk(time):
     else:
         raise RuntimeError('time is expected to be in (0, 1, 2)')
     if ct > end_time:
-        print('DK {} has already passed.'.format(time))
+        print_norm('DK {} has already passed.'.format(time))
         return
     sess = Session()
     kid = get_kid(sess, time)
-    print('Done POSTing SingInClass. KID is', kid)
+    print_norm('Done POSTing SingInClass. KID is ' + str(kid))
     if kid == None:
-        print('Assuming that this lesson does not exist, entering next loop.')
+        print_norm('Assuming that this lesson does not exist, entering next loop.')
         return
-    os.system('taskkill /f /im {}'.format(process_name))
-    print('Successfully killed GS terminal exe, without checking for return value')
-    if start_time <= ct <= end_time:
-        print('In the middle of DK', time)
-        print('Skipping state 4 POST')
-    else:
-        # Then ct < start_time
-        sleep(mktime(start_time) - mktime(localtime()))
-        # Now is the time to send signal 4
-        send_state4(sess, kid)
-        print('Sent state 4 POST')
-    sleep(mktime(end_time) - mktime(localtime()))
-    send_state5(sess, kid)
-    print('Sent state 5 POST #1')
+    left = {1, 2}
+    sleep(max(0, mktime(start_time) - mktime(ct)))
+    # first time to get stuinfo
     stuinfo = get_stuinfo(sess, time, kid)
-    print('Successfully got stuinfo')
+    left = { s[0] for s in stuinfo if s[1] }
+    sleep(mktime(end_time) - mktime(localtime()))
+    print_norm('DK ends')
+    # second time to get stuinfo
+    stuinfo = get_stuinfo(sess, time, kid)
+    print_norm('Successfully got stuinfo')
     allstu = [s[0] for s in stuinfo]
-    left = list({ s[0] for s in stuinfo if s[1] }.union(no_dk))
+    left = list({ s[0] for s in stuinfo if s[1] }.intersection(left).union(no_dk))
     del stuinfo
     sleep(max(0, mktime(end_time) + 15 - mktime(localtime())))
-    get_leave_info(sess, kid, left)
-    print('Successfully POSTed leaveinfo')
-    sleep(max(0, mktime(end_time) + 20 - mktime(localtime())))
     upload_card_info(sess, kid, left, allstu, time)
-    print('Successfully POSTed card info')
-    send_state5(sess, kid)
-    print('Sent state 5 POST #2')
-    print('DK {} stops. Restarting smartboard'.format(time))
+    sleep(max(0, mktime(end_time) + 30 - mktime(localtime())))
+    upload_card_info(sess, kid, left, allstu, time)
+    print_norm('Successfully POSTed card info')
 
 if __name__ == '__main__':
     # Wait to be activated by a socket
-    soc = socket.socket()
-    soc.bind((host, port))
-    soc.listen(1)
-    conn, addr = soc.accept()
-    # Now start
-    soc.close()
-    conn.close()
-    print('Trigger pressed by', addr)
-    for i in (0, 1, 2):
-        handle_dk(i)
+    global conn
+    while True:
+        try:
+            soc = socket.socket()
+            soc.bind((host, port))
+            soc.listen(1)
+            conn, addr = soc.accept()
+            # Now start
+            soc.close()
+            print('Trigger pressed by', addr)
+            for i in (0, 1, 2):
+                handle_dk(i)
+            sleep(5)
+            conn.send((json.dumps({'type': 'term', 'time': mktime(localtime())}) + '+').encode('utf-8'))
+            conn.close()
+        except ConnectionResetError:
+            print('Connection has been reset, restart')
+        else:
+            sys.exit(0)
