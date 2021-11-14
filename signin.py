@@ -1,12 +1,12 @@
 import json
-import os
 import socket
-import sys
+from queue import SimpleQueue as SafeQ
 from random import randrange
+from threading import Thread
 from time import localtime, mktime, sleep, struct_time
 
 from requests import Request, Session
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ConnectTimeout, ReadTimeout
 
 # Constants: the URLs
 url_class = 'http://192.168.16.85//Services/SmartBoard/SmartBoardSingInClass/json'
@@ -20,7 +20,8 @@ no_dk = { '9b37b535-5103-4656-8a76-3ed4aa736736' }
 host = '192.168.25.77'
 # The port to use for listening
 port = 8512
-# The socket for communication
+# The queue in which the threads exchange data
+que = SafeQ()
 
 def make_date_str(ct):
     return str(ct.tm_year) + '-' + "%02d" % ct.tm_mon + '-' + "%02d" % ct.tm_mday
@@ -47,6 +48,10 @@ def send_req(sess, headers, body, url):
     try:
         return sess.send(prep, timeout = 10).json()
     except ReadTimeout:
+        print_err('Encountered server ReadTimeout')
+        return {}
+    except ConnectTimeout:
+        print_err('Server connect timeout, maybe server is not up.')
         return {}
 
 def get_kid(sess, time):
@@ -72,7 +77,7 @@ def get_kid(sess, time):
             if time == 1 and start_time == 17: return lesson['KeChengAnPaiID']
             if time == 2 and start_time == 20: return lesson['KeChengAnPaiID']
     except KeyError:
-        print_err('bad reply in get_kid')
+        print_err('Bad reply in get_kid')
     # Not found, must return None
     return None
 
@@ -101,10 +106,10 @@ def get_stuinfo(sess, time, kid):
         return []
 
 def print_norm(s):
-    conn.send((json.dumps({'info': s, 'type': 'info', 'time': mktime(localtime())}) + '+').encode('utf-8'))
+    que.put(json.dumps({'info': s, 'type': 'info', 'time': mktime(localtime())}))
 
 def print_err(s):
-    conn.send((json.dumps({'error': s, 'type': 'error', 'time': mktime(localtime())}) + '+').encode('utf-8'))
+    que.put(json.dumps({'error': s, 'type': 'error', 'time': mktime(localtime())}))
 
 def make_mili():
     mili = str(randrange(1, 10000000))
@@ -220,7 +225,6 @@ def handle_dk(time):
     if kid == None:
         print_norm('Assuming that this lesson does not exist, entering next loop.')
         return
-    left = {1, 2}
     sleep(max(0, mktime(start_time) - mktime(ct)))
     # first time to get stuinfo
     stuinfo = get_stuinfo(sess, time, kid)
@@ -239,24 +243,55 @@ def handle_dk(time):
     upload_card_info(sess, kid, left, allstu, time)
     print_norm('Successfully POSTed card info')
 
+def worker():
+    ''' Worker in thread '''
+    for i in range(3):
+        handle_dk(i)
+    sleep(3)
+    que.put(json.dumps({
+        'type': 'term',
+        'time': mktime(localtime())
+    }))
+
 if __name__ == '__main__':
-    # Wait to be activated by a socket
-    global conn
-    while True:
-        try:
-            soc = socket.socket()
-            soc.bind((host, port))
-            soc.listen(1)
-            conn, addr = soc.accept()
-            # Now start
-            soc.close()
-            print('Trigger pressed by', addr)
-            for i in (0, 1, 2):
-                handle_dk(i)
-            sleep(5)
-            conn.send((json.dumps({'type': 'term', 'time': mktime(localtime())}) + '+').encode('utf-8'))
-            conn.close()
-        except ConnectionResetError:
-            print('Connection has been reset, restart')
+    # Prepare the worker thread
+    worker_thread = Thread(target = worker)
+    # Create and prepare the server socket
+    soc = socket.socket()
+    soc.bind((host, port))
+    soc.listen(1)
+    conn, addr = soc.accept()
+    print('Trigger pressed by', addr)
+    worker_thread.start()
+    # Current message needs to be stored to prevent socket errors
+    prev_msg = ''
+    transfer_good = True
+    sleep(1)
+    while worker_thread.is_alive() or (not que.empty()) or (not transfer_good):
+        # Get an entry from the queue only if the last transfer was good
+        print('Entering while loop,', end = ' ')
+        if transfer_good:
+            prev_msg = que.get() + '+'
+            print('fetches another message.')
         else:
-            sys.exit(0)
+            print('awaits another connection.')
+            conn, addr = soc.accept()
+            print('Another connection from', addr)
+            # Re-attempt to send prev_msg
+        transfer_good = False
+        try:
+            # Tricky part to send to conn
+            if conn.send(prev_msg.encode('utf-8')) != len(prev_msg):
+                raise RuntimeError('Not all bytes are sent')
+            if len(conn.recv(8)) == 0:
+                raise RuntimeError('Remote end has shut down!')
+        except OSError as ex:
+            print(repr(ex))
+        except RuntimeError as ex:
+            print(repr(ex))
+        except ConnectionResetError as ex:
+            print(repr(ex))
+        else:
+            transfer_good = True
+            print('Successfully sent:', prev_msg)
+    print('Goodbye')
