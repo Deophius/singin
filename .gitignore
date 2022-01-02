@@ -3,3 +3,8 @@ get_kid.json
 stuinfo.json
 upload.json
 data/*
+localData.db
+*.dll
+*.exe
+*.o
+.vscode/
