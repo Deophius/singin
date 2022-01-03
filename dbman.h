@@ -227,6 +227,27 @@ namespace Spirit {
     };
 
     CurrentTimeGetter get_current_time;
+
+    // Returns the range of ids, [a, b)
+    // dk_tot is the number of DKs in a day
+    // dk_time: 0, 1, 2
+    // conn: A valid connection
+    std::pair<int, int> get_id_range(int dk_tot, int dk_time, Connection& conn) {
+        // Cannot simply select distinct cardnum, because there might be new-comers.
+        const auto [tot_min, tot_max] = [&conn]{
+            Statement stmt(
+                conn,
+                "select min(id), max(id)+1 from 上课考勤 \
+                where CreationTime > datetime('now', 'localtime', 'start of day')"
+            );
+            auto row = stmt.next();
+            // assumes that row is not empty
+            return std::pair{ row->get<int>(0), row->get<int>(1) };
+        }();
+        // Number of classmates
+        const int n = (tot_max - tot_min) / dk_tot;
+        return { tot_min + n * dk_time, tot_min + n * dk_time + n };
+    }
 }
 
 #endif
