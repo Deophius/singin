@@ -1,4 +1,5 @@
 #include "dbman.h" 
+#include <iostream>
 
 int main() {
     Spirit::Connection conn(Spirit::dbname, Spirit::passwd);

@@ -5,7 +5,6 @@
 #include <chrono>
 #include <experimental/memory>
 #include <functional>
-#include <iostream>
 #include <optional>
 #include <random>
 
@@ -17,14 +16,6 @@ namespace Spirit {
     // that doesn't end with \0
     const std::string dbname = "E:/program/singin/localData.db";
     const std::string passwd = "123";
-
-    int callback(void* /*unused*/, int argc, char** argv, char** col_name) {
-        for (int i = 0; i < argc; i++) {
-            std::cout << col_name[i] << " = " << (argv[i] ? argv[i] : "NULL");
-        }
-        std::cout << std::endl;
-        return 0;
-    }
 
     struct ErrorOpeningDatabase : public std::runtime_error {
         ErrorOpeningDatabase() : runtime_error("Error opening database!") {}
