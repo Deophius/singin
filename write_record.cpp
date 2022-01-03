@@ -3,7 +3,7 @@
 #include <sstream>
 #include <thread>
 
-// Input: dk_tot, dk_curr
+// Input: dk_curr
 // whitespace-separated list of card numbers
 // Output: none
 
@@ -19,7 +19,9 @@ int get_op_lock(int currmin, int currmax, Spirit::Connection& conn) {
     Spirit::Statement stmt(conn, query.str());
     // Return the first value seen, it doesn't matter anyway
     auto row = stmt.next();
-    // Crash if row is empty
+    // Make a guess if row is empty
+    if (!row)
+        return 2;
     return row->get<int>(0);
 }
 
@@ -28,8 +30,8 @@ int main() {
     // and writes to the database.
     std::string card;
     Spirit::Connection conn(Spirit::dbname, Spirit::passwd);
-    int dk_tot, dk_curr;
-    std::cin >> dk_tot >> dk_curr;
+    int dk_tot = 3, dk_curr;
+    std::cin >> dk_curr;
     const auto [currmin, currmax] = Spirit::get_id_range(dk_tot, dk_curr, conn);
     while (std::cin) {
         std::cin >> card;

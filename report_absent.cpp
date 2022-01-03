@@ -3,18 +3,14 @@
 #include <sstream>
 #include <utility>
 
-// Input: how many DKs there are a day (currently 3), current DK num (start from 0)
+// Input: current DK num (start from 0)
 // Output: the card ids of those who haven't DK
-
-std::pair<int, int> read() {
-    int a, b;
-    std::cin >> a >> b;
-    return { a, b };
-}
 
 int main() {
     Spirit::Connection conn(Spirit::dbname, Spirit::passwd);
-    const auto [dk_tot, dk_curr] = read();
+    const int dk_tot = 3;
+    int dk_curr;
+    std::cin >> dk_curr;
     // The id for this DK is [currmin, currmax)
     const auto [currmin, currmax] = Spirit::get_id_range(dk_tot, dk_curr, conn);
     std::ostringstream query;
