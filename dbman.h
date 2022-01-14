@@ -180,53 +180,119 @@ namespace Spirit {
             throw std::logic_error("Type not supported!");
     }
 
-    // This function returns the current time in the format
-    // 2021-12-31 21:50:34.1234567
-    class CurrentTimeGetter {
+    // Base class for a clock (to get the time string for the db)
+    class Clock {
     private:
-        std::function<int()> mGen;
-    public:
-        CurrentTimeGetter() {
-            std::mt19937 mt(std::chrono::system_clock::now().time_since_epoch().count());
-            std::uniform_int_distribution dist(0, 9);
-            mGen = std::bind(dist, mt);
+        std::function<int()> mDigitGen;
+    protected:
+        // These functions are to be used in subclasses. Make sure str is a 
+        // string with the correct format.
+
+        // Fills str[pos] and str[pos + 1] with two-digit number n
+        // If n < 10, a prefix 0 is added, such as 08
+        void fill(std::string& str, int n, int pos) {
+            str[pos] = '0' + n / 10;
+            str[pos + 1] = '0' + n % 10;
         }
 
-        [[nodiscard]] std::string operator() () {
-            std::string res;
-            // Let's do the random part first
+        // ct is the current time
+        void set_date(std::string& str, const std::tm* ct) {
+            // Year constituent
+            const int year = ct->tm_year + 1900;
+            str[0] = '0' + year / 1000;
+            str[1] = '0' + year / 100 % 10;
+            str[2] = '0' + year / 10 % 10;
+            str[3] = '0' + year % 10;
+            fill(str, ct->tm_mon + 1, 5);
+            fill(str, ct->tm_mday, 8);
+        }
+
+        // Returns a time str template with the millisecond part set with random digits
+        std::string get_timestr_template() {
+            std::string str;
             do {
-                res = "0123-56-89 12:45:78.0123456";
+                str = "0123-56-89 12:45:78.0123456";
                 for (std::size_t pos = 20; pos <= 26; pos++)
-                    res[pos] = mGen() + '0';
-                while (res.back() == '0')
-                    res.pop_back();
-            } while (res.back() == '.'); // Turn back if only . is left
+                    str[pos] = mDigitGen() + '0';
+                while (str.back() == '0')
+                    str.pop_back();
+            } while (str.back() == '.'); // Turn back if only . is left
+            return str;
+        }
+
+    public:
+        Clock() {
+            std::mt19937 mt(std::chrono::system_clock::now().time_since_epoch().count());
+            std::uniform_int_distribution dist(0, 9);
+            mDigitGen = std::bind(dist, mt);
+        }
+
+        virtual ~Clock() noexcept = default;
+
+        // This is the interface subclasses need to implement
+        virtual std::string operator () () = 0;
+    };
+
+    // This clock returns the current time in the format
+    // 2021-12-31 21:50:34.1234567
+    class CurrentClock : public Clock {
+    public:
+        [[nodiscard]] virtual std::string operator() () override {
+            std::string res = get_timestr_template();
             const auto ct = []{
                 auto t = std::time(nullptr);
                 return std::localtime(&t);
             }();
-            // Year constituent
-            const int year = ct->tm_year + 1900;
-            res[0] = '0' + year / 1000;
-            res[1] = '0' + year / 100 % 10;
-            res[2] = '0' + year / 10 % 10;
-            res[3] = '0' + year % 10;
-            auto fill = [&res](int num, int pos) {
-                res[pos] = '0' + num / 10;
-                res[pos + 1] = '0' + num % 10;
+            set_date(res, ct);
+            fill(res, ct->tm_hour, 11);
+            fill(res, ct->tm_min, 14);
+            fill(res, ct->tm_sec, 17);
+            return res;
+        }
+
+        virtual ~CurrentClock() = default;
+    };
+
+    // This clock returns a random time in a specified region
+    class RandomClock : public Clock {
+    private:
+        std::function<int()> mRandTime;
+    public:
+        // The int argument can be obtained by calling str2time()
+        RandomClock(int start, int end) {
+            std::mt19937 mt(std::chrono::system_clock::now().time_since_epoch().count());
+            // Cut 5 seconds off from each edge to simulate the real situation.
+            std::uniform_int_distribution dist(start + 5, end - 5);
+            mRandTime = std::bind(dist, mt);
+        }
+
+        // Given a string of 'xx:xx:xx', returns the second it is in a day
+        // For example, '07:00:00' -> 3600 * 7
+        static int str2time(const std::string& timestr) {
+            if (timestr.length() != 8 || timestr[2] != ':' || timestr[5] != ':')
+                throw std::logic_error("Time string format incorrect");
+            auto toint = [&timestr](int pos) {
+                return 10 * (timestr[pos] - '0') + (timestr[pos + 1] - '0');
             };
-            // Fill in month, date, hms
-            fill(ct->tm_mon + 1, 5);
-            fill(ct->tm_mday, 8);
-            fill(ct->tm_hour, 11);
-            fill(ct->tm_min, 14);
-            fill(ct->tm_sec, 17);
+            return 3600 * toint(0) + 60 * toint(3) + toint(6);
+        }
+
+        virtual ~RandomClock() noexcept = default;
+
+        [[nodiscard]] virtual std::string operator() () override {
+            std::string res = get_timestr_template();
+            const auto ct = []{
+                auto t = std::time(nullptr);
+                return std::localtime(&t);
+            }();
+            set_date(res, ct);
+            int rand_time = mRandTime();
+            fill(res, rand_time / 3600, 11);
+            fill(res, rand_time / 60 % 60, 14);
+            fill(res, rand_time % 60, 17);
             return res;
         }
     };
-
-    CurrentTimeGetter get_current_time;
 
     // Returns the range of ids, [a, b)
     // dk_tot is the number of DKs in a day

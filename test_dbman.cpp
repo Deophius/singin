@@ -15,5 +15,4 @@ int main() {
             std::cout << row->get<int>(0) << " " << row->get<std::string>(1) << std::endl;
         }
     }
-    std::cout << get_current_time() << std::endl;
 }
