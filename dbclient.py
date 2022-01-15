@@ -2,11 +2,12 @@ import signin
 from requests import Session
 from time import asctime, localtime
 import os, sys, socket, json
+from random import shuffle
 
 host = 'localhost'
 port = 8303
 
-def read_local_cardmap(*params):
+def read_local_cardmap():
     f = open('stuinfo.json', 'r', encoding='utf-8')
     resp = json.load(f)
     return [(s["CardID"], s["StudentName"]) for s in resp["result"]["students"]]
@@ -61,36 +62,52 @@ def write_record(time, cardnum):
         print('    ', recv_data['what'], file=sys.stderr)
         sys.exit(1)
 
-sess = Session()
-dk_time = os.system('choice /c 012 /m "0 for morning, 1 for afternoon, 2 for night"') - 1
-print('User specified:', dk_time)
-print(asctime(), ": POSTing KID")
-kid = signin.get_kid(sess, dk_time)
-print('kid is:', kid)
-print(asctime(), ': Getting card map...')
+def restart_gs():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        req = {'command': 'restart_gs'}
+        sock.connect((host, port))
+        sock.sendall(bytes(json.dumps(req) + '\n', 'utf-8'))
+        recv_data = json.loads(str(sock.recv(1024), 'utf-8'))
+    if not recv_data['success']:
+        print(asctime(), ': dbman server has bad news', file=sys.stderr)
+        print('    ', recv_data['what'], file=sys.stderr)
+        sys.exit(1)
 
-# FIXME: Change to get_card_map in production release!!
+if __name__ == '__main__':
+    sess = Session()
+    dk_time = os.system('choice /c 012 /m "0 for morning, 1 for afternoon, 2 for night"') - 1
+    print('User specified:', dk_time)
+    print(asctime(), ": POSTing KID")
+    kid = signin.get_kid(sess, dk_time)
+    print('kid is:', kid)
+    print(asctime(), ': Getting card map...')
 
-card_map = read_local_cardmap(sess, dk_time, kid)
-print(asctime(), ': Invoking report_absent on server...')
-absent_cards = report_absent(dk_time)
-absent_names = [s[1] for s in card_map if s[0] in absent_cards]
-print('Those people did not DK:')
-for enum, name in enumerate(absent_names):
-    print(enum, name)
+    if kid is None:
+        card_map = read_local_cardmap()
+    else:
+        card_map = get_card_map(sess, dk_time, kid)
+    print(asctime(), ': Invoking report_absent on server...')
+    absent_cards = report_absent(dk_time)
+    absent_names = [s[1] for s in card_map if s[0] in absent_cards]
+    print('Those people did not DK:')
+    for enum, name in enumerate(absent_names):
+        print(enum, name)
 
-while True:
-    print('Who needs to sign in? (such as 1 3 4)')
-    try:
-        sign_ids = list(map(int, input().split()))
-    except:
-        print('Sorry, please try again.')
-        continue
-    print('These people will DK:')
-    print(' '.join((absent_names[i] for i in sign_ids)))
-    if os.system('choice /m "Confirm?"') == 1:
-        break
+    while True:
+        print('Who needs to sign in? (such as 1 3 4)(input a large int to quit)')
+        try:
+            sign_ids = list(map(int, input().split()))
+        except:
+            print('Sorry, please try again.')
+            continue
+        shuffle(sign_ids)
+        print('These people will DK:')
+        print(' '.join((absent_names[i] for i in sign_ids)))
+        if os.system('choice /m "Confirm?"') == 1:
+            break
 
-print(asctime(), ': Pushing data to write_record...')
-write_record(dk_time, [absent_cards[i] for i in sign_ids])
-print('Goodbye')
+    print(asctime(), ': Pushing data to write_record...')
+    write_record(dk_time, [absent_cards[i] for i in sign_ids])
+    if os.system('choice /m "Should I restart GS.Terminal?"') == 1:
+        restart_gs()
+    print('Goodbye')
