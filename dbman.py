@@ -1,29 +1,23 @@
 from json.decoder import JSONDecodeError
-from platform import machine
 import subprocess, socketserver, time, json, os
 
 # Configuration variable: path to GS.Terminal.Smartboard.exe
 gs_path = 'D:/杭二中/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
-# Configuration variable: the number of the card machine
-machine_id = 'NJ303'
 
 class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     ''' The request handling class for our server
-    In signin.py, sessid is called time
     In C++ parts, sessid is called dk_curr
-    
-    It supports two requests, both in JSON format:
+
+    It supports four requests, all in JSON format:
     {"command": "report_absent", "sessid": 1}
-        -> {"success": true, "cardnum": ["D1234567", "12345678", ...]} on success
+        -> {"success": true, "name": ["xxx", "xxx", ...]} on success
         -> {"success": false, "what": "error description"} on failure
 
-    {"command": "write_record", "cardnum": ["ABC12345", ...], "sessid":1, ["mode": "c" or "r"],
-        ["start": "17:15:00", "end": "17:55:00"]}
+    {"command": "write_record", "name": ["xxx", ...], "sessid":1, ["mode": "c" or "r"]}
         -> {"success": true} on success
         -> {"success": false, "what": "error description"} on failure
         Mode c: current time, pause for 0.7s between two commits
         Mode r: Randomly generates time.
-        "start", "end": timestr denoting the start and end of a DK session.
         If mode is empty, then defaults to "c" for backward compatibility.
 
     {"command": "restart_gs"} (Restarts GS.Terminal)
@@ -31,8 +25,8 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         -> {"success": false, "what": "error description"} on failure
 
     {"command": "tell_ip", "machine": "NJ303"} (Look for the machine's IP)
-        -> {"success": true, "ip": "192.168.xxx.xxx"}
-        -> {"success": false, "what": ...} if error occurs
+        -> {"success": true, "ip": "192.168.xxx.xxx",start:[<timestrs>], "end": [<timestr>]}
+        -> {"success": false, "what": ...} if error occurs and this is the correct machine
 
     Unrecognized format will result in:
         {"success": false, "what": "Unrecognized format!"}
@@ -54,24 +48,29 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
             return
         result = {"success": True}
         try:
-            p = subprocess.run(["report_absent"], capture_output=True, text=True, input=str(req['sessid']))
+            p = subprocess.run(
+                ["report_absent"],
+                capture_output=True,
+                text=True,
+                input=str(req['sessid']),
+                encoding='utf-8'
+            )
             assert p.returncode == 0
-            result['cardnum'] = p.stdout.strip('\n').split('\n')
+            result['name'] = p.stdout.strip('\n').split()
         except:
             result['what'] = 'Failed to invoke report_absent'
             result['success'] = False
         self.write_object(result)
 
     def write_record(self, req):
+        if 'mode' not in req:
+            req['mode'] = 'c'
         result = {"success": True}
         try:
-            if req['mode'] == 'c':
-                prog_in = str(req['sessid']) + ' c\n' + ' '.join(req['cardnum'])
-            elif req['mode'] == 'r':
-                prog_in = '{} r {} {}\n'.format(req['sessid'], req['start'], req['end']) + ' '.join(req['cardnum'])
-            else:
+            if req['mode'] not in ('c', 'r'):
                 raise ValueError
-            p = subprocess.run(["write_record"], input = prog_in, text=True)
+            prog_in = f"{req['sessid']} {req['mode']}\n" + ' '.join(req['name'])
+            p = subprocess.run(["write_record"], input=prog_in, text=True, encoding='utf-8')
             assert p.returncode == 0
         except KeyError as ex:
             result['success'] = False
@@ -96,14 +95,34 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
             self.write_str('{"success": false", "what": "Failed to start GS.Terminal"}')
 
     def tell_ip(self, req):
+        machine_id = None
+        start, end = [], []
+        result = {"success": True}
+        try:
+            p = subprocess.run(['today_info'], capture_output=True, encoding='utf-8', text=True)
+            assert p.returncode == 0
+            machine_id = p.stdout.strip().split('\n')[0]
+            for timepair in p.stdout.strip().split('\n')[1:]:
+                start.append(timepair.split()[0])
+                end.append(timepair.split()[1])
+        except AssertionError:
+            result['success'] = False
+            result['what'] = p.stderr
+        except:
+            result['success'] = False
+            result['what'] = 'Unknown error calling today_info'
         try:
             if req['machine'] == machine_id:
                 # The message is for us
+                if not result['success']:
+                    # Failed and this is the correct machine
+                    self.write_object(result)
+                    return
                 from socket import gethostbyname, gethostname
-                self.write_object({
-                    "success": True,
-                    "ip": gethostbyname(gethostname())
-                })
+                result['ip'] = gethostbyname(gethostname())
+                result['start'] = start
+                result['end'] = end
+                self.write_object(result)
         except KeyError as ex:
             self.write_object({
                 "success": False,
@@ -127,8 +146,6 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         if req['command'] == 'report_absent':
             self.report_absent(req)
         elif req['command'] == 'write_record':
-            if 'mode' not in req:
-                req['mode'] = 'c'
             self.write_record(req)
         elif req['command'] == 'restart_gs':
             self.restart_gs()
@@ -141,6 +158,6 @@ if __name__ == '__main__':
     from socket import gethostbyname, gethostname
     host = gethostbyname(gethostname())
     port = 8303
-    print('dbman version 2.1 listening on port', port)
+    print('dbman version 2.2 listening on port', port)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
         server.serve_forever()
