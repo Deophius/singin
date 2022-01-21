@@ -4,18 +4,21 @@
 #include <utility>
 
 // Input: current DK num (start from 0)
-// Output: the card ids of those who haven't DK
+// Output: the names of those who haven't DK, separated by newlines
 
 int main() {
     Spirit::Connection conn(Spirit::dbname, Spirit::passwd);
-    const int dk_tot = 3;
+    auto lessons = Spirit::get_lesson(conn);
     int dk_curr;
     std::cin >> dk_curr;
-    // The id for this DK is [currmin, currmax)
-    const auto [currmin, currmax] = Spirit::get_id_range(dk_tot, dk_curr, conn);
+    if (dk_curr < 0 || dk_curr >= (int)lessons.size()) {
+        std::cerr << "dk_curr is out of range\n";
+        return 1;
+    }
     std::ostringstream query;
-    query << "select 卡号 from 上课考勤 where " << currmin << " <= ID and ID < "
-        << currmax << " and 打卡时间 is null";
+    query << "select 学生名称 from 上课考勤 where KeChengXinXi = '"
+        << lessons[dk_curr].id
+        << "' and 打卡时间 is null";
     Spirit::Statement stmt(conn, query.str());
     while (true) {
         auto row = stmt.next();
