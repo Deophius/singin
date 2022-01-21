@@ -1,7 +1,7 @@
 CXX = g++
 CC = gcc
 CXXFLAGS = -Wall -std=c++17 -g -I ./include/
-TARGETS = test_dbman report_absent write_record
+TARGETS = test_dbman report_absent write_record today_info
 DLLS = sqlite3mc_x64.dll
 
 .PHONY: all
@@ -21,3 +21,12 @@ write_record: write_record.o
 	$(CXX) $^ $(DLLS) -o $@
 
 write_record.o: write_record.cpp dbman.h
+
+today_info: today_info.o
+	$(CXX) $^ $(DLLS) -o $@
+
+today_info.o: today_info.cpp dbman.h
+
+.PHONY: clean
+clean:
+	rm *.exe *.o
