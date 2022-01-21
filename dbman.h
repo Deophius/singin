@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include <random>
+#include <vector>
 
 namespace Spirit {
     using namespace std::string_literals;
@@ -138,11 +139,11 @@ namespace Spirit {
         // Move assignment is not allowed
         Statement& operator = (Statement&& rhs) noexcept = delete;
 
-        [[nodiscard]] sqlite3_stmt* get() noexcept {
+        sqlite3_stmt* get() noexcept {
             return mStatement;
         }
 
-        [[nodiscard]] std::optional<ResultRow> next() {
+        std::optional<ResultRow> next() {
             if (mEnd)
                 return std::nullopt;
             const int rc = sqlite3_step(mStatement);
@@ -166,7 +167,7 @@ namespace Spirit {
     {}
 
     template <typename T>
-    [[nodiscard]] T ResultRow::get(int col) {
+    T ResultRow::get(int col) {
         // Index starts from 0
         if (col < 0 || col >= mCnt)
             throw std::out_of_range("col is out of range!");
@@ -231,6 +232,17 @@ namespace Spirit {
 
         // This is the interface subclasses need to implement
         virtual std::string operator () () = 0;
+
+        // Given a string of 'xx:xx:xx', returns the second it is in a day
+        // For example, '07:00:00' -> 3600 * 7
+        static int str2time(const std::string& timestr) {
+            if (timestr.length() != 8 || timestr[2] != ':' || timestr[5] != ':')
+                throw std::logic_error("Time string format incorrect");
+            auto toint = [&timestr](int pos) {
+                return 10 * (timestr[pos] - '0') + (timestr[pos + 1] - '0');
+            };
+            return 3600 * toint(0) + 60 * toint(3) + toint(6);
+        }
     };
 
     // This clock returns the current time in the format
@@ -266,20 +278,9 @@ namespace Spirit {
             mRandTime = std::bind(dist, mt);
         }
 
-        // Given a string of 'xx:xx:xx', returns the second it is in a day
-        // For example, '07:00:00' -> 3600 * 7
-        static int str2time(const std::string& timestr) {
-            if (timestr.length() != 8 || timestr[2] != ':' || timestr[5] != ':')
-                throw std::logic_error("Time string format incorrect");
-            auto toint = [&timestr](int pos) {
-                return 10 * (timestr[pos] - '0') + (timestr[pos + 1] - '0');
-            };
-            return 3600 * toint(0) + 60 * toint(3) + toint(6);
-        }
-
         virtual ~RandomClock() noexcept = default;
 
-        [[nodiscard]] virtual std::string operator() () override {
+        virtual std::string operator() () override {
             std::string res = get_timestr_template();
             const auto ct = []{
                 auto t = std::time(nullptr);
@@ -294,25 +295,43 @@ namespace Spirit {
         }
     };
 
-    // Returns the range of ids, [a, b)
-    // dk_tot is the number of DKs in a day
-    // dk_time: 0, 1, 2
-    // conn: A valid connection
-    std::pair<int, int> get_id_range(int dk_tot, int dk_time, Connection& conn) {
-        // Cannot simply select distinct cardnum, because there might be new-comers.
-        const auto [tot_min, tot_max] = [&conn]{
-            Statement stmt(
-                conn,
-                "select min(id), max(id)+1 from 上课考勤 \
-                where CreationTime > datetime('now', 'localtime', 'start of day')"
-            );
+    // This structure represents a Lesson with all its data included
+    struct LessonInfo {
+        // Time to start and end punching card
+        std::string start_time, end_time;
+        // Lesson ID as a string obtained from DB
+        std::string id;
+    };
+
+    // Returns a vector of today's lessons' information
+    // start_time and end_time has format xx:xx:xx
+    std::vector<LessonInfo> get_lesson(Connection& conn) {
+        // Expects that the database now contains the required info
+        const std::string query = "select ID, 考勤开始时间, 考勤结束时间 from \
+        课程信息 where CreationTime > datetime('now', 'localtime', 'start of day')";
+        Statement stmt(conn, query);
+        std::vector<LessonInfo> res;
+        while (true) {
             auto row = stmt.next();
-            // assumes that row is not empty
-            return std::pair{ row->get<int>(0), row->get<int>(1) };
-        }();
-        // Number of classmates
-        const int n = (tot_max - tot_min) / dk_tot;
-        return { tot_min + n * dk_time, tot_min + n * dk_time + n };
+            if (!row)
+                break;
+            res.emplace_back();
+            res.back().id = row->get<std::string>(0);
+            res.back().start_time = row->get<std::string>(1).substr(11, 8);
+            res.back().end_time = row->get<std::string>(2).substr(11, 8);
+        }
+        return res;
+    }
+
+    // Returns the machine's ID
+    std::string get_machine(Connection& conn) {
+        const std::string query = "select distinct TerminalID from Local_Visual_Publish";
+        Statement stmt(conn, query);
+        auto row = stmt.next();
+        if (!row)
+            // No suitable information found, return something impossible
+            return "nonexistent";
+        return row->get<std::string>(0);
     }
 }
 
