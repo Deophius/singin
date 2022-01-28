@@ -89,9 +89,10 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     def restart_gs(self):
         # Ignore return value because this is to ensure GS is closed
         os.system('taskkill /im GS.Terminal.SmartBoard.exe /f /t > NUL 2> NUL')
-        if os.system('start cmd /c' + gs_path) == 0:
+        try:
+            os.startfile(gs_path)
             self.write_str('{"success": true}')
-        else:
+        except OSError:
             self.write_str('{"success": false", "what": "Failed to start GS.Terminal"}')
 
     def tell_ip(self, req):
@@ -133,8 +134,9 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         ''' Handles a request'''
         self.data = str(self.rfile.readline().strip(), 'utf-8')
-        print(time.asctime() + ': Connection from', self.client_address[0])
-        print('    ', self.data)
+        with open('dbman.log', 'a') as logfile:
+            print(time.asctime() + ': Connection from', self.client_address[0], file = logfile)
+            print('    ', self.data, file = logfile)
         req = None
         try:
             req = json.loads(self.data)
@@ -159,6 +161,7 @@ if __name__ == '__main__':
     from socket import gethostbyname, gethostname
     host = gethostbyname(gethostname())
     port = 8303
-    print('dbman version 2.2 listening on port', port)
+    with open('dbman.log', 'w') as logfile:
+        print(time.asctime(), ': dbman version 2.2 listening on port', port, file = logfile)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
         server.serve_forever()
