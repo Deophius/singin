@@ -100,8 +100,9 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         result = {"success": True}
         try:
             p = subprocess.run(['today_info'], capture_output=True, encoding='utf-8', text=True)
-            assert p.returncode == 0
+            assert p.returncode in (0, 1)
             machine_id = p.stdout.strip().split('\n')[0]
+            assert p.returncode == 0
             for timepair in p.stdout.strip().split('\n')[1:]:
                 start.append(timepair.split()[0])
                 end.append(timepair.split()[1])
