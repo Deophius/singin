@@ -32,7 +32,7 @@ That's because it was wrong when the target program was developed.
 2. Check and double check that your client and server are on the same network.
 3. On a terminal, `cd` into that directory.
 4. Make sure that your editor supports UTF-8. This is especially important for the C++ part.
-5. The `include/` directory contains headers of the external library. You need to download a copy of the library
+5. Create a `include/` directory contains headers of the external library. You need to download a copy of the library
    DLL (x64 version) into the source directory, among with the source files.
 6. Open `dbman.h` in an editor and find the constant variables `dbname` and `passwd`.
 7. On the server, find the `localData.db` file and crack the password. (I am not getting too involved in this)
