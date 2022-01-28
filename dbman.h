@@ -265,6 +265,34 @@ namespace Spirit {
         virtual ~CurrentClock() = default;
     };
 
+    class IncrementalClock : public Clock {
+    private:
+        // ticks since start of day
+        int mTicks;
+    public:
+        IncrementalClock() {
+            const auto ct = []{
+                auto t = std::time(nullptr);
+                return std::localtime(&t);
+            }();
+            mTicks = ct->tm_hour * 3600 + ct->tm_min * 60 + ct->tm_sec;
+        }
+
+        virtual std::string operator() () override {
+            std::string res = get_timestr_template();
+            const auto ct = []{
+                auto t = std::time(nullptr);
+                return std::localtime(&t);
+            }();
+            set_date(res, ct);
+            fill(res, mTicks / 3600, 11);
+            fill(res, mTicks / 60 % 60, 14);
+            fill(res, mTicks % 60, 17);
+            ++mTicks;
+            return res;
+        }
+    };
+
     // This clock returns a random time in a specified region
     class RandomClock : public Clock {
     private:

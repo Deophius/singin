@@ -40,7 +40,7 @@ int main() {
     std::cin >> mode;
     switch (mode) {
         case 'c': // current
-            clock.reset(new Spirit::CurrentClock());
+            clock.reset(new Spirit::IncrementalClock());
             break;
         case 'r': {
             // random
@@ -76,8 +76,5 @@ int main() {
             if (!row)
                 break;
         }
-        // This feature is kept
-        if (mode == 'c')
-            std::this_thread::sleep_for(std::chrono::milliseconds(700));
     }
 }
