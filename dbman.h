@@ -221,6 +221,13 @@ namespace Spirit {
             return str;
         }
 
+        // Sets the hms part according to ticks
+        void set_hms(std::string& str, int ticks) {
+            fill(str, ticks / 3600, 11);
+            fill(str, ticks / 60 % 60, 14);
+            fill(str, ticks % 60, 17);
+        }
+
     public:
         Clock() {
             std::mt19937 mt(std::chrono::system_clock::now().time_since_epoch().count());
@@ -285,9 +292,7 @@ namespace Spirit {
                 return std::localtime(&t);
             }();
             set_date(res, ct);
-            fill(res, mTicks / 3600, 11);
-            fill(res, mTicks / 60 % 60, 14);
-            fill(res, mTicks % 60, 17);
+            set_hms(res, mTicks);
             ++mTicks;
             return res;
         }
@@ -316,9 +321,7 @@ namespace Spirit {
             }();
             set_date(res, ct);
             int rand_time = mRandTime();
-            fill(res, rand_time / 3600, 11);
-            fill(res, rand_time / 60 % 60, 14);
-            fill(res, rand_time % 60, 17);
+            set_hms(res, rand_time);
             return res;
         }
     };
