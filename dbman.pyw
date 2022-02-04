@@ -2,7 +2,8 @@ from json.decoder import JSONDecodeError
 import subprocess, socketserver, time, json, os
 
 # Configuration variable: path to GS.Terminal.Smartboard.exe
-gs_path = 'D:/杭二中/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
+# gs_path = 'D:/杭二中/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
+gs_path = 'E:/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
 
 class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     ''' The request handling class for our server
@@ -93,7 +94,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
             os.startfile(gs_path)
             self.write_str('{"success": true}')
         except OSError:
-            self.write_str('{"success": false", "what": "Failed to start GS.Terminal"}')
+            self.write_str('{"success": false, "what": "Failed to start GS.Terminal"}')
 
     def tell_ip(self, req):
         machine_id = None
@@ -134,7 +135,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         ''' Handles a request'''
         self.data = str(self.rfile.readline().strip(), 'utf-8')
-        with open('dbman.log', 'a') as logfile:
+        with open('dbman.log', 'a', encoding = 'utf-8') as logfile:
             print(time.asctime() + ': Connection from', self.client_address[0], file = logfile)
             print('    ', self.data, file = logfile)
         req = None
@@ -161,7 +162,7 @@ if __name__ == '__main__':
     from socket import gethostbyname, gethostname
     host = gethostbyname(gethostname())
     port = 8303
-    with open('dbman.log', 'w') as logfile:
+    with open('dbman.log', 'w', encoding = 'utf-8') as logfile:
         print(time.asctime(), ': dbman version 2.2 listening on port', port, file = logfile)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
         server.serve_forever()

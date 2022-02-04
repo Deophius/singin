@@ -149,6 +149,9 @@ def main():
         else:
             write_record(sessid, host, [absent_names[i] for i in sign_ids], 'r' if rc == 1 else 'c')
         break
+    rc = os.system('choice /m "Should I restart terminal?"')
+    if rc == 1:
+        restart_gs(host)
     print('Goodbye')
 
 if __name__ == '__main__':
