@@ -2,7 +2,6 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <thread>
 
 // Input: dk_curr <mode>
 // <names>
