@@ -39,7 +39,7 @@ That's because it was wrong when the target program was developed.
 8. Back to the builder, configure these variables as seen on the server.
 9. Run `ipconfig` and check the subnet mask.
 10. Open `dbclient.py` and find `m` in `get_broadcast_ip()`. Configure it according to your situation.
-11. Run `make -j 4` in the source directory.
+11. Run `make -j 4` in the source directory. If you would like optimizations, you can turn it on with `-e DEBUG=0`
 12. Find the target program's path and configure `gs_path` in `dbman.pyw`.
 13. If you prefer, you can also configure `port` in both `dbman.pyw` and `dbclient.py`.
 14. You will need to copy the following files into your removable disk:

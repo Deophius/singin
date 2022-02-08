@@ -1,6 +1,11 @@
 CXX = g++
 CC = gcc
-CXXFLAGS = -Wall -std=c++17 -g -I ./include/
+DEBUG = true
+ifeq ($(DEBUG), true)
+	CXXFLAGS = -Wall -std=c++17 -g -I ./include/
+else
+	CXXFLAGS = -Wall -std=c++17 -I ./include/ -O3
+endif
 TARGETS = test_dbman report_absent write_record today_info
 DLLS = sqlite3mc_x64.dll
 
@@ -29,4 +34,4 @@ today_info.o: today_info.cpp dbman.h
 
 .PHONY: clean
 clean:
-	rm *.exe *.o
+	rm *.exe *.o -f
