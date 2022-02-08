@@ -47,7 +47,10 @@ def get_machine_data(machine_name):
             recv = json.loads(str(sock.recv(1024), 'utf-8'))
         except socket.timeout:
             print('Unable to receive data in get_machine_data', file = sys.stderr)
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(1)
+            else:
+                raise
         except json.JSONDecodeError:
             return (None, None)
     check_recv(recv, 'get_machine_data')
@@ -61,12 +64,22 @@ def send_req(host, req):
         except json.JSONDecodeError:
             print('Invalid reply when sending request:', file=sys.stderr)
             print(req, file = sys.stderr)
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(1)
+            else:
+                raise
+
+class RequestFailed(RuntimeError):
+    def __init__(self, msg):
+        super().__init__(self, msg)
 
 def check_recv(recv, funcname):
     if not recv['success']:
-        print(f'{funcname}:', recv['what'], file = sys.stderr)
-        sys.exit(1)
+        if __name__ == '__main__':
+            print(f'{funcname}:', recv['what'], file = sys.stderr)
+            sys.exit(1)
+        else:
+            raise RequestFailed(f'{funcname}: {recv["what"]}')
 
 def report_absent(sessid, host):
     recv = send_req(host, {'command': 'report_absent', 'sessid': sessid})
