@@ -37,15 +37,15 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
 
     Note that Python requires a \n at the end of the request.
     '''
-    def write_str(self, s):
-        self.wfile.write(bytes(s, 'utf-8'))
-
     def write_object(self, o):
         self.wfile.write(bytes(json.dumps(o), 'utf-8'))
 
     def report_absent(self, req):
         if 'sessid' not in req:
-            self.write_str('{"success": false, "what": "No session id specified via sessid!"}')
+            self.write_object({
+                'success': False,
+                'what': "No session id specified via sessid!"
+            })
             return
         result = {"success": True}
         try:
@@ -92,9 +92,12 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         os.system('taskkill /im GS.Terminal.SmartBoard.exe /f /t > NUL 2> NUL')
         try:
             os.startfile(gs_path)
-            self.write_str('{"success": true}')
+            self.write_object({"success": True})
         except OSError:
-            self.write_str('{"success": false, "what": "Failed to start GS.Terminal"}')
+            self.write_object({
+                "success": False,
+                "what": "Failed to start GS.Terminal"
+            })
 
     def tell_ip(self, req):
         machine_id = None
@@ -142,10 +145,10 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         try:
             req = json.loads(self.data)
         except JSONDecodeError:
-            self.write_str('{"success": false, "what": "Unrecognized format!"}')
+            self.write_object({"success": False, "what": "Unrecognized format!"})
             return
         if "command" not in req:
-            self.write_str('{"success": false, "what": "No command!"}')
+            self.write_object({"success": False, "what": "No command!"})
             return
         if req['command'] == 'report_absent':
             self.report_absent(req)
@@ -156,7 +159,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         elif req['command'] == 'tell_ip':
             self.tell_ip(req)
         else:
-            self.write_str('{"success": false, "what": "Unknown command!"}')
+            self.write_object({"success": False, "what": "Unknown command!"})
 
 if __name__ == '__main__':
     from socket import gethostbyname, gethostname
