@@ -176,7 +176,7 @@ class Reporter(Frame):
 
     def __write(self, mode, win):
         ''' Underlying writer. mode: c or r; win: the dialog window. '''
-        from tkinter.messagebox import showerror
+        from tkinter.messagebox import showerror, showinfo
         print(self.__listbox.curselection())
         try:
             dbclient.write_record(
@@ -191,8 +191,12 @@ class Reporter(Frame):
             showerror('Unknown error', str(type(ex)) + '\n' + str(ex.args))
         win.destroy()
         self.__getdata()
+        if len(self.__absent_names) == 0:
+            showinfo('Good job!', 'Everybody has signed in! I might as well go back to sleep!')
+            sys.exit(0)
         self.__listbox.delete(0, END)
         self.__listbox.insert(END, *self.__absent_names)
+        self.__label.config(text = 'Last call OK! Choose more:')
 
     def __restart(self):
         ''' Does the communication and restarts GS terminal. '''
