@@ -39,6 +39,9 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     '''
     def write_object(self, o):
         self.wfile.write(bytes(json.dumps(o), 'utf-8'))
+        with open('dbman.log', 'a', encoding = 'utf-8') as f:
+            print(time.asctime(), ": Replied with", file = f)
+            print('   ', json.dumps(o, ensure_ascii = False), file = f)
 
     def report_absent(self, req):
         if 'sessid' not in req:
