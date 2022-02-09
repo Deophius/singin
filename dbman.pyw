@@ -170,5 +170,7 @@ if __name__ == '__main__':
     port = 8303
     with open('dbman.log', 'w', encoding = 'utf-8') as logfile:
         print(time.asctime(), ': dbman version 2.2 listening on port', port, file = logfile)
+        os.system('taskkill /im LockMouse.exe /f /t > NUL 2> NUL')
+        print(time.asctime(), ': called taskkill to terminate LockMouse', file = logfile)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
         server.serve_forever()
