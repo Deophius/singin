@@ -46,7 +46,7 @@ That's because it was wrong when the target program was developed.
 
     * `*.exe`
     * `dbman.pyw`
-    * All the DLLs in the same directory as your `g++.exe`.
+    * All the DLLs in the same directory as your `g++.exe` (or the compiler you use)
 
 15. Plug in your media into the server (You will need some techniques for this.)
 16. Open task manager, kill `LockMouse.exe` and restart `explorer.exe`.
@@ -54,11 +54,18 @@ That's because it was wrong when the target program was developed.
 18. Go to task scheduler, add a task that starts `dbman.pyw` 3 minutes after system boot.
 19. Reboot to check.
 
-## How do I use this?
+## How do I use this? (CLI)
 
 1. On the client, open a shell and run `dbclient.py`.
 2. Follow the instructions.
 3. If an error occurs, I think you will be able to figure out why since you already have the
    server up and running, which proves that you are capable enough.
+
+## How do I use this? (GUI)
+
+1. Double click on `dbgui.pyw` in an explorer window.
+2. Follow the in-program instructions.
+3. If something funny happens, you can launch this file with the `py` launcher to read the console
+   output and try to fix it yourself. :)
 
 *Good luck!*
