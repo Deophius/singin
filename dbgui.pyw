@@ -14,22 +14,31 @@ class IPAsker(Frame):
         self.make_widgets()
 
     def make_widgets(self):
-        self.label1 = Label(self, text = 'Machine name:', font = 'Consolas')
-        self.entry = Entry(self)
+        f1 = Frame(self)
+        self.label1 = Label(f1, text = 'Machine name:', font = 'Consolas')
+        self.entry = Entry(f1)
         self.entry.insert(0, 'NJ303')
         self.entry.focus()
         self.entry.bind('<Return>', lambda event: self.callback())
+        f2 = Frame(self)
         self.label2 = Label(self, text = 'None machine data yet')
+        self.br = Entry(f2)
+        self.br.insert(0, dbclient.get_broadcast_ip())
         self.label1.pack(side = LEFT)
         self.entry.pack(side = LEFT)
-        self.label2.pack(side = BOTTOM)
+        f1.pack(side = TOP)
+        Label(f2, text = 'Broadcast ip:', font = 'Consolas').pack(side = LEFT)
+        self.br.pack(side = LEFT)
+        f2.pack(side = TOP)
+        Button(self, text = 'OK', command = self.callback).pack(side = TOP, anchor = N)
+        self.label2.pack(side = TOP)
 
     def callback(self):
         from tkinter.messagebox import showerror
         try:
             self.label2.config(text = 'Pending reply...')
             self.label2.update()
-            self.machine_data = dbclient.get_machine_data(self.entry.get())
+            self.machine_data = dbclient.get_machine_data(self.entry.get(), self.br.get())
             if self.machine_data == (None, None):
                 raise ValueError("Get machine data failed! Maybe server is not up?")
             self.destroy()
@@ -124,15 +133,15 @@ class Reporter(Frame):
         try:
             self.__absent_names = dbclient.report_absent(self.__sessid, self.__host)
         except dbclient.socket.timeout as ex:
-            retry_rc = askretrycancel("Retry?", 'Read timeout ' + ex.args[0])
+            retry_rc = askretrycancel("Retry?", 'Read timeout ' + ex.args[1])
         except ValueError as ex:
-            retry_rc = askretrycancel("Retry?", 'Fail ' + ex.args[0])
+            retry_rc = askretrycancel("Retry?", 'Fail ' + ex.args[1])
         except dbclient.RequestFailed as ex:
-            retry_rc = askretrycancel("Retry?", 'Bad server reply ' + ex.args[0])
+            retry_rc = askretrycancel("Retry?", 'Bad server reply ' + ex.args[1])
         except BaseException as ex:
             retry_rc = askretrycancel(
                 "Retry?",
-                str(type(ex)) + ' when getting machine data ' + str(ex.args[0])
+                str(type(ex)) + ' when getting machine data ' + str(ex.args[1])
             )
         else:
             # No exception occurred, just return
@@ -150,13 +159,15 @@ class Reporter(Frame):
             showinfo('Good job!', 'Everybody has signed in! I might as well go back to sleep!')
             sys.exit(0)
         self.__label.config(text = 'These people didn\'t DK:')
-        self.__listbox = Listbox(self, selectmode = EXTENDED)
+        f = Frame(self)
+        self.__listbox = Listbox(f, selectmode = EXTENDED)
         self.__listbox.insert(END, *self.__absent_names)
-        self.__sbar = Scrollbar(self)
+        self.__sbar = Scrollbar(f)
         self.__sbar.config(command = self.__listbox.yview)
         self.__listbox.config(yscrollcommand = self.__sbar.set)
         self.__sbar.pack(side = RIGHT, fill = Y)
         self.__listbox.pack(side = TOP, expand = True, fill = BOTH)
+        f.pack(side = TOP)
         Button(self, text = 'OK', command = self.__confirm_and_write).pack(anchor = N)
         Button(self, text = 'Restart GS and quit', command = self.__restart).pack(anchor = N)
 
@@ -200,7 +211,9 @@ class Reporter(Frame):
 
     def __restart(self):
         ''' Does the communication and restarts GS terminal. '''
-        from tkinter.messagebox import showerror
+        from tkinter.messagebox import showerror, askyesnocancel
+        if not askyesnocancel('Restart?', 'Really restart terminal?'):
+            return
         try:
             dbclient.restart_gs(self.__host)
         except dbclient.RequestFailed as ex:
@@ -213,7 +226,7 @@ class Reporter(Frame):
             self.quit()
 
 if __name__ == '__main__':
-    Tk().title('Signin! awsl')
+    Tk().title('我找不到钟小平')
     asker = IPAsker()
     asker.mainloop()
     # if the machine data is still None, then the exit was an accident.
