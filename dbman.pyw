@@ -41,7 +41,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         self.wfile.write(bytes(json.dumps(o), 'utf-8'))
         with open('dbman.log', 'a', encoding = 'utf-8') as f:
             print(time.asctime(), ": Replied with", file = f)
-            print('   ', json.dumps(o, ensure_ascii = False), file = f)
+            print('    ', json.dumps(o, ensure_ascii = False), file = f)
 
     def report_absent(self, req):
         if 'sessid' not in req:
@@ -57,12 +57,13 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 capture_output=True,
                 text=True,
                 input=str(req['sessid']),
-                encoding='utf-8'
+                encoding='utf-8',
+                creationflags = subprocess.CREATE_NO_WINDOW,
+                check = True
             )
-            assert p.returncode == 0
             result['name'] = p.stdout.strip('\n').split()
-        except:
-            result['what'] = 'Failed to invoke report_absent'
+        except subprocess.CalledProcessError as ex:
+            result['what'] = 'Failed to invoke report_absent\n' + ex.stderr
             result['success'] = False
         self.write_object(result)
 
@@ -73,18 +74,23 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         try:
             if req['mode'] not in ('c', 'r'):
                 raise ValueError
-            prog_in = f"{req['sessid']} {req['mode']}\n" + ' '.join(req['name'])
-            p = subprocess.run(["write_record"], input=prog_in, text=True, encoding='utf-8')
-            assert p.returncode == 0
+            subprocess.run(
+                ["write_record"],
+                input = f"{req['sessid']} {req['mode']}\n" + ' '.join(req['name']),
+                text = True,
+                encoding='utf-8',
+                creationflags = subprocess.CREATE_NO_WINDOW,
+                check = True
+            )
         except KeyError as ex:
             result['success'] = False
             result['what'] = 'request did not include ' + ex.args[0]
         except ValueError:
             result['success'] = False
             result['what'] = 'Unknown mode: ' + str(req['mode'])
-        except AssertionError:
+        except subprocess.CalledProcessError as ex:
             result['success'] = False
-            result['what'] = p.stderr
+            result['what'] = ex.stderr
         except:
             result['what'] = 'Failed to invoke write_record'
             result['success'] = False
@@ -107,7 +113,13 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         start, end = [], []
         result = {"success": True}
         try:
-            p = subprocess.run(['today_info'], capture_output=True, encoding='utf-8', text=True)
+            p = subprocess.run(
+                ['today_info'],
+                capture_output = True,
+                encoding = 'utf-8',
+                text = True,
+                creationflags = subprocess.CREATE_NO_WINDOW
+            )
             assert p.returncode in (0, 1)
             machine_id = p.stdout.strip().split('\n')[0]
             assert p.returncode == 0
@@ -169,7 +181,7 @@ if __name__ == '__main__':
     host = gethostbyname(gethostname())
     port = 8303
     with open('dbman.log', 'w', encoding = 'utf-8') as logfile:
-        print(time.asctime(), ': dbman version 2.2 listening on port', port, file = logfile)
+        print(time.asctime(), ': dbman version 2.3 listening on port', port, file = logfile)
         os.system('taskkill /im LockMouse.exe /f /t > NUL 2> NUL')
         print(time.asctime(), ': called taskkill to terminate LockMouse', file = logfile)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
