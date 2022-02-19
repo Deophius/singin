@@ -98,7 +98,12 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
 
     def restart_gs(self):
         # Ignore return value because this is to ensure GS is closed
-        os.system('taskkill /im GS.Terminal.SmartBoard.exe /f /t > NUL 2> NUL')
+        subprocess.run(
+            'taskkill /im GS.Terminal.SmartBoard.exe /f /t'.split(),
+            creationflags = subprocess.CREATE_NO_WINDOW,
+            stdout = subprocess.DEVNULL,
+            stderr = subprocess.DEVNULL,
+        )
         try:
             os.startfile(gs_path)
             self.write_object({"success": True})
