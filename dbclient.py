@@ -12,28 +12,17 @@ class LessonInfo:
         return f'Lesson {self.start} ~ {self.end}'
 
 def get_broadcast_ip():
-    # Configuration variable: the subnet mask (experimentally measured)
-    m = 0xFFFFFF00
-    # string for localhost's ip
-    s = socket.gethostbyname(socket.gethostname())
-    # r is the integer for localhost's ip (e.g. 192.168.5.31 -> 3232236834)
-    r = 0
-    for i in map(int, s.split('.')):
-        r = (r << 8) + i
-    # Integer for broadcast ip (e.g. 3232237055)
-    a = r | (m ^ 0xFFFFFFFF)
-    # List for broadcast ip in reverse order, e.g. [255,5,168,192]
-    l = []
-    while a:
-        l.append(a & 0xFF)
-        a >>= 8
-    return '.'.join(map(str, reversed(l)))
+    # Configuration variable: the subnet's broadcast ip
+    return '192.168.25.255'
 
 # Returns a tuple (ip, list of LessonInfo)
 # For example, ('192.168.5.30', [..., ..., ...])
 # If machine is not found, returns (None, None)
-def get_machine_data(machine_name):
-    host = get_broadcast_ip()
+def get_machine_data(machine_name, broadcast = None):
+    if broadcast is None:
+        host = get_broadcast_ip()
+    else:
+        host = broadcast
     print('Broadcast ip is', host)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -44,7 +33,12 @@ def get_machine_data(machine_name):
         }
         sock.sendto(bytes(json.dumps(req) + '\n', 'utf-8'), (host, port))
         try:
-            recv = json.loads(str(sock.recv(1024), 'utf-8'))
+            raw = ''
+            sw_time = time.time()
+            while raw == '' and time.time() < sw_time + 10:
+                raw = str(sock.recv(1024), 'utf-8')
+            print(raw)
+            recv = json.loads(raw)
         except socket.timeout:
             print('Unable to receive data in get_machine_data', file = sys.stderr)
             if __name__ == '__main__':

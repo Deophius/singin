@@ -37,8 +37,8 @@ That's because it was wrong when the target program was developed.
 6. Open `dbman.h` in an editor and find the constant variables `dbname` and `passwd`.
 7. On the server, find the `localData.db` file and crack the password. (I am not getting too involved in this)
 8. Back to the builder, configure these variables as seen on the server.
-9. Run `ipconfig` and check the subnet mask.
-10. Open `dbclient.py` and find `m` in `get_broadcast_ip()`. Configure it according to your situation.
+9. Run `ipconfig` and check the subnet mask and the host's IP.
+10. Open `dbclient.py` and find `get_broadcast_ip()`. Configure it according to your situation.
 11. Run `make -j 4` in the source directory. If you would like optimizations, you can turn it on with `-e DEBUG=0`
 12. Find the target program's path and configure `gs_path` in `dbman.pyw`.
 13. If you prefer, you can also configure `port` in both `dbman.pyw` and `dbclient.py`.
@@ -53,6 +53,7 @@ That's because it was wrong when the target program was developed.
 17. Copy the files mentioned above into a folder.
 18. Go to task scheduler, add a task that starts `dbman.pyw` 3 minutes after system boot.
 19. Reboot to check.
+20. When asked about the firewall, allow all access.
 
 ## How do I use this? (CLI)
 
