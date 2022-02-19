@@ -339,7 +339,8 @@ namespace Spirit {
     std::vector<LessonInfo> get_lesson(Connection& conn) {
         // Expects that the database now contains the required info
         const std::string query = "select ID, 考勤开始时间, 考勤结束时间 from \
-        课程信息 where CreationTime > datetime('now', 'localtime', 'start of day')";
+        课程信息 where 考勤开始时间 > datetime('now', 'localtime', 'start of day') \
+        and 考勤开始时间 < datetime('now', 'localtime', 'start of day', '1 day')";
         Statement stmt(conn, query);
         std::vector<LessonInfo> res;
         while (true) {
