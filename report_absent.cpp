@@ -2,11 +2,14 @@
 #include <iostream>
 #include <sstream>
 
-// Input: current DK num (start from 0)
+// Input: dbname passwd
+// current DK num (start from 0)
 // Output: the names of those who haven't DK, separated by newlines
 
 int main() {
-    Spirit::Connection conn(Spirit::dbname, Spirit::passwd);
+    std::string dbname, passwd;
+    std::cin >> dbname >> passwd;
+    Spirit::Connection conn(dbname, passwd);
     auto lessons = Spirit::get_lesson(conn);
     int dk_curr;
     std::cin >> dk_curr;

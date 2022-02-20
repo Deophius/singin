@@ -13,11 +13,6 @@ namespace Spirit {
     using namespace std::string_literals;
     using std::experimental::observer_ptr;
 
-    // Cannot use std::string_view here because std::string_view might have a buffer
-    // that doesn't end with \0
-    const std::string dbname = "E:/program/singin/localData.db";
-    const std::string passwd = "123";
-
     struct ErrorOpeningDatabase : public std::runtime_error {
         ErrorOpeningDatabase() : runtime_error("Error opening database!") {}
     };

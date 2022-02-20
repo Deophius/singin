@@ -3,7 +3,7 @@
 #include <memory>
 #include <sstream>
 
-// Input: dk_curr <mode>
+// Input: dbname passwd dk_curr <mode>
 // <names>
 // Output: none
 
@@ -24,9 +24,9 @@ int get_op_lock(const std::string& id, Spirit::Connection& conn) {
 }
 
 int main() {
-    // Reads in the card number of people who need to sign in
-    // and writes to the database.
-    Spirit::Connection conn(Spirit::dbname, Spirit::passwd);
+    std::string dbname, passwd;
+    std::cin >> dbname >> passwd;
+    Spirit::Connection conn(dbname, passwd);
     int dk_curr;
     std::cin >> dk_curr;
     const auto lessons = Spirit::get_lesson(conn);

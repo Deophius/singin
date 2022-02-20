@@ -1,7 +1,7 @@
 #include "dbman.h"
 #include <iostream>
 
-// Input: none
+// Input: dbname passwd
 // Output:
 // <machineID>
 // <start timestr1> <end timestr1>
@@ -18,7 +18,9 @@
 
 int main() {
 	using namespace std::chrono_literals;
-	Spirit::Connection conn(Spirit::dbname, Spirit::passwd);
+	std::string dbname, passwd;
+    std::cin >> dbname >> passwd;
+    Spirit::Connection conn(dbname, passwd);
 	std::cout << Spirit::get_machine(conn) << '\n';
 	auto lessons = Spirit::get_lesson(conn);
 	if (lessons.size() == 0) {
