@@ -1,6 +1,5 @@
 __pycache__/*
-get_kid.json
-upload.json
+*.json
 data/*
 localData.db
 *.dll
