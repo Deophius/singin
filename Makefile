@@ -6,16 +6,11 @@ ifeq ($(DEBUG), true)
 else
 	CXXFLAGS = -Wall -std=c++17 -I ./include/ -O3
 endif
-TARGETS = test_dbman report_absent write_record today_info
+TARGETS = report_absent write_record today_info
 DLLS = sqlite3mc_x64.dll
 
 .PHONY: all
 all: $(TARGETS)
-
-test_dbman: test_dbman.o
-	$(CXX) $^ $(DLLS) -o $@
-
-test_dbman.o: test_dbman.cpp dbman.h
 
 report_absent: report_absent.o
 	$(CXX) $^ $(DLLS) -o $@
