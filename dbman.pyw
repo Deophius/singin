@@ -3,7 +3,12 @@ import subprocess, socketserver, time, json, os
 
 # Configuration variable: path to GS.Terminal.Smartboard.exe
 # gs_path = 'D:/杭二中/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
-gs_path = 'E:/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
+# gs_path = 'E:/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
+try:
+    config = json.load(open('man.json', 'r', encoding = 'utf-8'))
+except FileNotFoundError:
+    from tkinter.messagebox import showerror
+    showerror('Configuration not found', 'Please create the configuration file in cwd.')
 
 class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     ''' The request handling class for our server
@@ -56,7 +61,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 ["report_absent"],
                 capture_output=True,
                 text=True,
-                input=str(req['sessid']),
+                input = f'{config["dbname"]} {config["passwd"]} {req["sessid"]}',
                 encoding='utf-8',
                 creationflags = subprocess.CREATE_NO_WINDOW,
                 check = True
@@ -76,7 +81,8 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 raise ValueError
             subprocess.run(
                 ["write_record"],
-                input = f"{req['sessid']} {req['mode']}\n" + ' '.join(req['name']),
+                input = f"{config['dbname']} {config['passwd']} {req['sessid']} {req['mode']}\n"
+                    + ' '.join(req['name']),
                 text = True,
                 encoding='utf-8',
                 creationflags = subprocess.CREATE_NO_WINDOW,
@@ -105,7 +111,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
             stderr = subprocess.DEVNULL,
         )
         try:
-            os.startfile(gs_path)
+            os.startfile(config['gs_path'])
             self.write_object({"success": True})
         except OSError:
             self.write_object({
@@ -123,7 +129,8 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 capture_output = True,
                 encoding = 'utf-8',
                 text = True,
-                creationflags = subprocess.CREATE_NO_WINDOW
+                creationflags = subprocess.CREATE_NO_WINDOW,
+                input = f"{config['dbname']} {config['passwd']}"
             )
             assert p.returncode in (0, 1)
             machine_id = p.stdout.strip().split('\n')[0]
@@ -184,9 +191,9 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
 if __name__ == '__main__':
     from socket import gethostbyname, gethostname
     host = gethostbyname(gethostname())
-    port = 8303
+    port = config["port"]
     with open('dbman.log', 'w', encoding = 'utf-8') as logfile:
-        print(time.asctime(), ': dbman version 2.3 listening on port', port, file = logfile)
+        print(time.asctime(), ': dbman version', config['version'], 'listening on port', port, file = logfile)
         os.system('taskkill /im LockMouse.exe /f /t > NUL 2> NUL')
         print(time.asctime(), ': called taskkill to terminate LockMouse', file = logfile)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
