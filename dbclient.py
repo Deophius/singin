@@ -1,7 +1,14 @@
 import time
 import os, sys, socket, json
 
-port = 8303
+try:
+    config = json.load(open('cli.json', encoding = 'utf-8'))
+except FileNotFoundError:
+    from tkinter.messagebox import showerror
+    showerror('No config', 'Please add configuration file cli.json')
+    sys.exit(1)
+
+port = config['port']
 
 class LessonInfo:
     def __init__(self, start = '', end = ''):
@@ -11,22 +18,18 @@ class LessonInfo:
     def __repr__(self):
         return f'Lesson {self.start} ~ {self.end}'
 
-def get_broadcast_ip():
-    # Configuration variable: the subnet's broadcast ip
-    return '192.168.25.255'
-
 # Returns a tuple (ip, list of LessonInfo)
 # For example, ('192.168.5.30', [..., ..., ...])
 # If machine is not found, returns (None, None)
 def get_machine_data(machine_name, broadcast = None):
     if broadcast is None:
-        host = get_broadcast_ip()
+        host = config['broadcast']
     else:
         host = broadcast
     print('Broadcast ip is', host)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.settimeout(10)
+        sock.settimeout(config['timeout'])
         req = {
             'command': 'tell_ip',
             'machine': machine_name
@@ -35,8 +38,8 @@ def get_machine_data(machine_name, broadcast = None):
         try:
             raw = ''
             sw_time = time.time()
-            while raw == '' and time.time() < sw_time + 10:
-                raw = str(sock.recv(1024), 'utf-8')
+            while raw == '' and time.time() < sw_time + config['timeout']:
+                raw = str(sock.recv(config['buffsize']), 'utf-8')
             print(raw)
             recv = json.loads(raw)
         except socket.timeout:
@@ -54,7 +57,7 @@ def send_req(host, req):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.sendto(bytes(json.dumps(req, ensure_ascii = False) + '\n', 'utf-8'), (host, port))
         try:
-            return json.loads(str(sock.recv(2048), 'utf-8'))
+            return json.loads(str(sock.recv(config['buffsize']), 'utf-8'))
         except json.JSONDecodeError:
             print('Invalid reply when sending request:', file=sys.stderr)
             print(req, file = sys.stderr)

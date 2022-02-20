@@ -1,6 +1,14 @@
 from tkinter import *
 import dbclient, sys
 
+try:
+    import json
+    config = json.load(open('cli.json', encoding = 'utf-8'))
+except FileNotFoundError:
+    from tkinter.messagebox import showerror
+    showerror('No config', 'Please add configuration file cli.json')
+    sys.exit(1)
+
 class IPAsker(Frame):
     ''' A component that executes get_machine_data()
     
@@ -17,13 +25,14 @@ class IPAsker(Frame):
         f1 = Frame(self)
         self.label1 = Label(f1, text = 'Machine name:', font = 'Consolas')
         self.entry = Entry(f1)
-        self.entry.insert(0, 'NJ303')
+        self.entry.insert(0, config['defmachine'])
         self.entry.focus()
         self.entry.bind('<Return>', lambda event: self.callback())
         f2 = Frame(self)
-        self.label2 = Label(self, text = 'None machine data yet')
+        self.label2 = Label(self, text = 'No machine data yet')
         self.br = Entry(f2)
-        self.br.insert(0, dbclient.get_broadcast_ip())
+        self.br.insert(0, config['broadcast'])
+        self.br.bind('<Return>', lambda e: self.callback())
         self.label1.pack(side = LEFT)
         self.entry.pack(side = LEFT)
         f1.pack(side = TOP)
@@ -48,13 +57,13 @@ class IPAsker(Frame):
             # It seems that after quit() the control is still in this function.
             return
         except dbclient.socket.timeout as ex:
-            showerror('Read timeout', ex.args[0])
+            showerror('Read timeout', 'Get machine data failed! Maybe server is not up?')
         except ValueError as ex:
-            showerror('Fail', ex.args[0])
+            showerror('Fail', ex.args[1])
         except dbclient.RequestFailed as ex:
-            showerror('Bad server reply', ex.args[0])
+            showerror('Bad server reply', ex.args[1])
         except BaseException as ex:
-            showerror(str(type(ex)) + ' when getting machine data', ex.args[0])
+            showerror(str(type(ex)) + ' when getting machine data', ex.args[1])
         # No matter what failure it is, this line will be executed.
         self.label2.config(text = 'None machine data yet')
         self.label2.update()
