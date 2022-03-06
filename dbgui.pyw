@@ -177,7 +177,11 @@ class Reporter(Frame):
         self.__sbar.pack(side = RIGHT, fill = Y)
         self.__listbox.pack(side = TOP, expand = True, fill = BOTH)
         f.pack(side = TOP)
-        Button(self, text = 'OK', command = self.__confirm_and_write).pack(anchor = N)
+        g = Frame(self)
+        Button(g, text = 'OK', command = self.__confirm_and_write).pack(side = LEFT)
+        Label(g, text = '        ').pack(side = LEFT)
+        Button(g, text = 'Refresh', command = self.__refresh).pack(side = LEFT)
+        g.pack(side = TOP)
         Button(self, text = 'Restart GS and quit', command = self.__restart).pack(anchor = N)
 
     def __confirm_and_write(self):
@@ -217,6 +221,16 @@ class Reporter(Frame):
         self.__listbox.delete(0, END)
         self.__listbox.insert(END, *self.__absent_names)
         self.__label.config(text = 'Last call OK! Choose more:')
+
+    def __refresh(self):
+        from tkinter.messagebox import showerror, showinfo
+        self.__getdata()
+        if len(self.__absent_names) == 0:
+            showinfo('Good job!', 'Everybody has signed in! I might as well go back to sleep!')
+            sys.exit(0)
+        self.__listbox.delete(0, END)
+        self.__listbox.insert(END, *self.__absent_names)
+        self.__label.config(text = 'Refreshed! Choose more:')
 
     def __restart(self):
         ''' Does the communication and restarts GS terminal. '''
