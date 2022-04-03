@@ -7,7 +7,6 @@
 // <names>
 // Output: none
 
-// [currmin, currmax): the range of ID for a DK session
 // Returns the OptimisticLockField value write_record should set
 int get_op_lock(const std::string& id, Spirit::Connection& conn) {
     std::ostringstream query;

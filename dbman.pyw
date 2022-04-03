@@ -1,9 +1,6 @@
 from json.decoder import JSONDecodeError
 import subprocess, socketserver, time, json, os
 
-# Configuration variable: path to GS.Terminal.Smartboard.exe
-# gs_path = 'D:/杭二中/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
-# gs_path = 'E:/SmartBoardHost 3.4.3.106全包/GS.Terminal.SmartBoard.exe'
 try:
     config = json.load(open('man.json', 'r', encoding = 'utf-8'))
 except FileNotFoundError:
