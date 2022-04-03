@@ -6,7 +6,7 @@ ifeq ($(DEBUG), true)
 else
 	CXXFLAGS = -Wall -std=c++17 -I ./include/ -O3
 endif
-TARGETS = report_absent write_record today_info
+TARGETS = report_absent write_record today_info sess_req
 DLLS = sqlite3mc_x64.dll
 
 .PHONY: all
@@ -26,6 +26,11 @@ today_info: today_info.o
 	$(CXX) $^ $(DLLS) -o $@
 
 today_info.o: today_info.cpp dbman.h
+
+sess_req: sess_req.o
+	$(CXX) $^ $(DLLS) -o $@
+
+sess_req.o: sess_req.cpp dbman.h
 
 .PHONY: clean
 clean:
