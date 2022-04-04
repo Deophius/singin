@@ -11,7 +11,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     ''' The request handling class for our server
     In C++ parts, sessid is called dk_curr
 
-    It supports four requests, all in JSON format:
+    It supports six requests, all in JSON format:
     {"command": "report_absent", "sessid": 1}
         -> {"success": true, "name": ["xxx", "xxx", ...]} on success
         -> {"success": false, "what": "error description"} on failure
@@ -30,6 +30,15 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
     {"command": "tell_ip", "machine": "NJ303"} (Look for the machine's IP)
         -> {"success": true, "ip": "192.168.xxx.xxx",start:[<timestrs>], "end": [<timestr>]}
         -> {"success": false, "what": ...} if error occurs and this is the correct machine
+
+    {"command": "get_watchdog"} (Gets a list of lessons that have watchdogs set)
+        -> {"success": true, "start": [<timestrs>], "end": [<timestrs>]}
+        -> {"success": false, "what": ...} if error occurs.
+
+    {"command": "set_watchdog", "start": [<timestrs>], "end": [<timestrs>]}
+    (Sets the watchdog list)
+        -> {"success": true}
+        -> {"success": false, "what": "error description"} if error occurs
 
     Unrecognized format will result in:
         {"success": false, "what": "Unrecognized format!"}
@@ -159,6 +168,40 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 "what": "No {} specified".format(ex.args[0])
             })
 
+    def get_watchdog(self):
+        try:
+            self.write_object({
+                'success': True,
+                'start': [x[0] for x in config['watchdog']],
+                'end': [x[1] for x in config['watchdog']]
+            })
+        except KeyError as ex:
+            self.write_object({
+                'success': False,
+                'what': f"Missing {ex.args[0]} in config file."
+            })
+
+    def set_watchdog(self, req):
+        try:
+            if len(req['start']) != len(req['end']):
+                raise ValueError("Sizes of start and end don't match!")
+            config['watchdog'] = list(zip(req['start'], req['end']))
+            with open('man.json', 'w', encoding = 'utf-8') as config_file:
+                json.dump(config, config_file, ensure_ascii = False, indent = 4)
+            self.write_object({
+                'success': True
+            })
+        except ValueError as ex:
+            self.write_object({
+                'success': False,
+                'what': ex.args[0]
+            })
+        except KeyError as ex:
+            self.write_object({
+                'success': False,
+                'what': f'Missing {ex.args[0]} in request'
+            })
+
     def handle(self):
         ''' Handles a request'''
         self.data = str(self.rfile.readline().strip(), 'utf-8')
@@ -182,6 +225,10 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
             self.restart_gs()
         elif req['command'] == 'tell_ip':
             self.tell_ip(req)
+        elif req['command'] == 'get_watchdog':
+            self.get_watchdog()
+        elif req['command'] == 'set_watchdog':
+            self.set_watchdog(req)
         else:
             self.write_object({"success": False, "what": "Unknown command!"})
 
@@ -193,5 +240,8 @@ if __name__ == '__main__':
         print(time.asctime(), ': dbman version', config['version'], 'listening on port', port, file = logfile)
         os.system('taskkill /im LockMouse.exe /f /t > NUL 2> NUL')
         print(time.asctime(), ': called taskkill to terminate LockMouse', file = logfile)
+        if 'watchdog' in config and 'url_student_new' in config and 'user_agent' in config:
+            os.startfile('watchdog.pyw')
+            print(time.asctime(), ': launched watchdog.', file = logfile)
     with socketserver.UDPServer((host, port), SpiritUDPHandler) as server:
         server.serve_forever()
