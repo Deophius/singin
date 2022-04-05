@@ -134,7 +134,7 @@ def worker(lesson : LessonInfo):
             encoding = 'utf-8',
             text = True,
             creationflags = subprocess.CREATE_NO_WINDOW,
-            input = f"{config['dbname']} {config['passwd']} {read_today_info().index(lesson)} r"
+            input = f"{config['dbname']} {config['passwd']} {read_today_info().index(lesson)} c"
                 + '\n' + ' '.join(need_sign),
             check = True
         )

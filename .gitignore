@@ -7,3 +7,4 @@ localData.db
 *.o
 .vscode/
 include/*
+*.log
