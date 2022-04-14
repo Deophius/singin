@@ -26,8 +26,9 @@ That's because it was wrong when the target program was developed.
 2. This project uses library
    [Better SQLite3 Multiple Cipher](https://github.com/utelle/SQLite3MultipleCiphers).
    Tested version is v1.3.5.
+3. Python's `requests` library. Tested version is `v2.26.0`.
 
-## Procedure for building and deployment
+## Procedure for building and deployment of our project
 
 1. On the build machine, download and unzip or clone the source code into a directory.
 2. Check and double check that your client and server are on the same network.
@@ -38,7 +39,7 @@ That's because it was wrong when the target program was developed.
 6. On the server, find the `localData.db` file and crack the password.
    (I am not getting too involved in this)
 7. Run `ipconfig` and check the subnet mask and the host's IP. Now go back to the builder.
-8. Run `make -j 3` in the source directory.
+8. Run `make -j 4` in the source directory.
    If you would like optimizations, you can turn it on with `-e DEBUG=0`
 9. Create two files called `man.json` and `cli.json` respectively. These are the configuration files.
     In `man.json`, put in these entries:
@@ -48,6 +49,21 @@ That's because it was wrong when the target program was developed.
     * version: An arbitary string, usually as seen in the release page.
     * dbname: Path to the database (You just found this a few steps ago)
     * passwd: The password of the database.
+    * watchdog: A list of timestr pairs, denoting the start and end of each session to be watched.
+      For example,
+
+      ```json
+      "watchdog": [
+         [
+            "17:15:00",
+            "17:55:00"
+         ]
+      ],
+      ```
+
+    * url_student_new: The URL of the GS server's student_new API. You can determine this with Fiddler.
+      Obviously, this should contain `LoadSingInStudentNew` or similar.
+    * user_agent: The user agent to use. You can get this string from any normal browser.
 
     In `cli.json`, put in these entries:
 
@@ -64,6 +80,7 @@ That's because it was wrong when the target program was developed.
     * `*.exe`
     * `man.json`
     * `dbman.pyw`
+    * `watchdog.pyw`
     * All the DLLs in the same directory as your `g++.exe` (or the compiler you use)
 
 11. Plug in your media into the server (You will need some techniques for this.)
@@ -73,11 +90,30 @@ That's because it was wrong when the target program was developed.
 15. Reboot to check.
 16. When asked about the firewall, allow all access.
 
+## Help on installing requests on the server
+
+It is quite likely that the server doesn't have an Internet connection. You can work around
+this.
+
+1. Run `pip install requests` on a machine that can access the Internet.
+2. Run `pip show requests` to get info about location and requirements.
+3. Go to that directory and copy `requests` and its requirements into a removable disk.
+4. Copy these files to the equivalent directory on the server.
+
 ## How do I use this?
+
+Manual sign in:
 
 1. Double click on `dbgui.pyw` in an explorer window.
 2. Follow the in-program instructions.
 3. If something funny happens, you can launch this file with the `py` launcher to read the console
    output and try to fix it yourself. :)
+
+Automation is the king:
+
+1. Double click on `trainer.pyw` in an explorer window.
+2. Follow the in-program instructions. Remember to flush!
+3. This functionality is quite new, so you need to conduct a few tests to see if it works. If anything
+   funny happens, maybe you're on your own because everyone's needs are quite specific these days.
 
 *Good luck!*
