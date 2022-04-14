@@ -92,10 +92,10 @@ def worker(lesson : LessonInfo):
         return
     prep = Request('POST', url = url_student_new, headers = headers, data = p.stdout).prepare()
     try:
-        # req = sess.send(prep, timeout = 10).json()
+        req = sess.send(prep, timeout = 10).json()
         # Debug purposes only!
-        with open('stuinfo.json', encoding = 'utf-8') as f:
-            req = json.load(f)
+        # with open('stuinfo.json', encoding = 'utf-8') as f:
+        #    req = json.load(f)
     except requests.exceptions.RequestException as ex:
         print(time.asctime())
         print('Watchdog ', lesson, 'failed because of networking error.')
