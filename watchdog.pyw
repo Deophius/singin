@@ -1,5 +1,7 @@
 # Watch dog functionality on the server, logs are written to watchdog.log.
 import time, subprocess, sys
+import os
+import os.path
 
 class LessonInfo:
     def __init__(self, start = '', end = ''):
@@ -154,17 +156,32 @@ if __name__ == '__main__':
         watched.sort(key = lambda x: x[0])
         print(time.asctime(), ' On schedule:\n', tuple(map(lambda x: x[1], watched)), sep = '', flush = True)
         curr = 0
-        while curr < len(watched):
+        while True:
             ct = time.localtime()
             sec_cnt = ct.tm_hour * 3600 + ct.tm_min * 60 + ct.tm_sec
-            if sec_cnt > watched[curr][0]:
-                # This DK has passed, move on.
-                print(time.asctime(), watched[curr][1], 'has passed.', flush = True)
-                curr += 1
+            if os.path.exists('reread.txt'):
+                import json
+                config = json.load(open('man.json', 'r', encoding = 'utf-8'))
+                os.remove('reread.txt')
+                watched = [(LessonInfo.to_sec_cnt(lesson.end), lesson) for lesson in get_watched()]
+                watched.sort(key = lambda x: x[0])
+                print(
+                    time.asctime(),
+                    'Schedule updated\n',
+                    tuple(map(lambda x: x[1], watched)),
+                    sep = '', flush = True
+                )
+                curr = 0
                 continue
-            elif sec_cnt > watched[curr][0] - 60:
-                # In last minute, quickly take action.
-                worker(watched[curr][1])
-                curr += 1
-                continue
-            time.sleep(30)
+            if curr < len(watched):
+                if sec_cnt > watched[curr][0]:
+                    # This DK has passed, move on.
+                    print(time.asctime(), watched[curr][1], 'has passed.', flush = True)
+                    curr += 1
+                    continue
+                elif sec_cnt > watched[curr][0] - 60:
+                    # In last minute, quickly take action.
+                    worker(watched[curr][1])
+                    curr += 1
+                    continue
+            time.sleep(15)

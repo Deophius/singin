@@ -191,6 +191,8 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
             self.write_object({
                 'success': True
             })
+            # Create signal to reread
+            open('reread.txt', 'w').close()
         except ValueError as ex:
             self.write_object({
                 'success': False,
