@@ -53,14 +53,12 @@ int main() {
             return 1;
     }
     std::string name;
+    const int op_lock = get_op_lock(lessons[dk_curr].id, conn);
     while (std::cin) {
         std::cin >> name;
-        // Do not explicitly check the card number to be valid,
-        // because in the future the format might change.
-        // Didn't cache oplock because this program needs to be defensive.
         std::ostringstream query;
         query << "update 上课考勤 set OptimisticLockField="
-            << get_op_lock(lessons[dk_curr].id, conn)
+            << op_lock
             << " , 打卡时间='"
             << (*clock)()
             << "' where KeChengXinXi='"
@@ -68,11 +66,16 @@ int main() {
             << "' and 学生名称='"
             << name
             << "'";
-        Spirit::Statement stmt(conn, query.str());
         while (true) {
-            auto row = stmt.next();
-            if (!row)
-                break;
+            try {
+                Spirit::Statement stmt(conn, query.str());
+                auto row = stmt.next();
+                if (!row)
+                    // Only upon successful operation can this statement be reached.
+                    break;
+            } catch (const PrepareError& ex) {
+                // Do nothing and try it again.
+            }
         }
     }
 }
