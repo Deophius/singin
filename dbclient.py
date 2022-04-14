@@ -91,6 +91,16 @@ def restart_gs(host):
     recv = send_req(host, {'command': "restart_gs"})
     check_recv(recv, 'restart_gs')
 
+def get_watchdog(host):
+    ''' Returns a list of LessonInfo objects'''
+    recv = send_req(host, {'command': 'get_watchdog'})
+    check_recv(recv, 'get_watchdog')
+    return [LessonInfo(s, e) for (s, e) in zip(recv['start'], recv['end'])]
+
+def set_watchdog(host, start, end):
+    recv = send_req(host, {'command': "set_watchdog", "start": start, "end": end})
+    check_recv(recv, 'set_watchdog')
+
 def main():
     # Ask for machine input
     machine = ''
