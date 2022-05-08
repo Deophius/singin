@@ -73,7 +73,7 @@ int main() {
                 if (!row)
                     // Only upon successful operation can this statement be reached.
                     break;
-            } catch (const PrepareError& ex) {
+            } catch (const Spirit::PrepareError& ex) {
                 // Do nothing and try it again.
             }
         }
