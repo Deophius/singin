@@ -48,14 +48,6 @@ def read_today_info():
         ans.append(LessonInfo(s, e))
     return ans
 
-def get_watched():
-    ''' Figures out which lessons should have watch dogs.
-    
-    A lesson is watched if it's both in today_info and in the database. '''
-    database = read_today_info()
-    filed = [LessonInfo(s, e) for (s, e) in config['watchdog']]
-    return (i for i in database if any(i == j for j in filed))
-
 def worker(lesson : LessonInfo):
     ''' Does the actual work.
     
@@ -64,13 +56,21 @@ def worker(lesson : LessonInfo):
     '''
     from requests import Request, Session
     import requests.exceptions
-    print(time.asctime(), 'Start watchdog for', lesson, flush = True)
+    flag = False
+    for i in read_today_info():
+        if LessonInfo.to_sec_cnt(i.end) == LessonInfo.to_sec_cnt(lesson.end):
+            flag = True
+            break
+    if not flag:
+        write_log(lesson, 'not in DB.')
+        return
+    write_log('Start watchdog for', lesson)
     try:
         url_student_new = config['url_student_new']
         # The user agent to use
         user_agent = config['user_agent']
     except KeyError as ex:
-        print(time.asctime(), ex.args, 'not found in config file!', flush = True)
+        write_log(ex.args, 'not found in config file!')
         return
     headers = {'User-Agent': user_agent, 'Content-Type': 'application/json'}
     sess = Session()
@@ -88,9 +88,7 @@ def worker(lesson : LessonInfo):
             raise ValueError(p.stderr)
     except ValueError as ex:
         # Shocking news, it failed, just log it and exit
-        print(time.asctime())
-        print('Watchdog for', lesson, 'failed because', ex.args[0])
-        print(file = logfile, flush = True)
+        write_log('Watchdog for', lesson, 'failed because', ex.args[0])
         return
     prep = Request('POST', url = url_student_new, headers = headers, data = p.stdout).prepare()
     try:
@@ -105,9 +103,9 @@ def worker(lesson : LessonInfo):
         return
     try:
         invalid_names = {stu['StudentName'] for stu in req['result']['students'] if stu['Invalid']}
-        print(time.asctime(), len(invalid_names), 'are invalid.')
+        write_log(len(invalid_names), 'are invalid.')
     except KeyError as ex:
-        print(time.asctime(), 'Missing', ex.args[0], 'exiting on', lesson, flush = True)
+        write_log('Missing', ex.args[0], 'exiting on', lesson)
         return
     # Now read those who are absent
     try:
@@ -123,12 +121,12 @@ def worker(lesson : LessonInfo):
         if p.returncode != 0:
             raise RuntimeError(p.stderr)
         absent_names = set(p.stdout.split())
-        print(time.asctime(), len(absent_names), 'are absent')
+        write_log(len(absent_names), 'are absent.')
     except RuntimeError as ex:
-        print(time.asctime(), 'Report_absent failed with stderr', ex.args[0], sep = '\n', flush = True)
+        write_log('Report_absent failed with stderr', ex.args[0], sep = '\n')
         return
     need_sign = absent_names - invalid_names
-    print(time.asctime(), len(need_sign), 'need sign in.', flush = True)
+    write_log(len(need_sign), 'need sign in.')
     try:
         subprocess.run(
             ['write_record'],
@@ -141,20 +139,27 @@ def worker(lesson : LessonInfo):
             check = True
         )
     except subprocess.CalledProcessError:
-        print(time.asctime(), 'write_record failed')
+        write_log('write_record failed.')
     else:
-        print(time.asctime(), 'write_record succeeded.')
-    sys.stdout.flush()
+        write_log('write_record succeeded.')
+
+def write_log(*args, **kwargs):
+    print(time.asctime(), *args, **kwargs, flush = True)
+
+def get_watched():
+    watched = [LessonInfo(s, e) for (s, e) in config['watchdog']]
+    watched = [(LessonInfo.to_sec_cnt(lesson.end), lesson) for lesson in watched]
+    watched.sort(key = lambda x: x[0])
+    return watched
 
 if __name__ == '__main__':
     with open('watchdog.log', 'w', encoding = 'utf-8') as logfile:
         # Do a little redirection
         sys.stdout = logfile
-        print(time.asctime(), 'watchdog version', config['version'], 'is launched.')
+        write_log('watchdog version', config['version'], 'is launched.')
         # The second counts of the watched sessions
-        watched = [(LessonInfo.to_sec_cnt(lesson.end), lesson) for lesson in get_watched()]
-        watched.sort(key = lambda x: x[0])
-        print(time.asctime(), ' On schedule:\n', tuple(map(lambda x: x[1], watched)), sep = '', flush = True)
+        watched = get_watched()
+        write_log(' On schedule:\n', tuple(map(lambda x: x[1], watched)), sep = '')
         curr = 0
         while True:
             ct = time.localtime()
@@ -163,20 +168,14 @@ if __name__ == '__main__':
                 import json
                 config = json.load(open('man.json', 'r', encoding = 'utf-8'))
                 os.remove('reread.txt')
-                watched = [(LessonInfo.to_sec_cnt(lesson.end), lesson) for lesson in get_watched()]
-                watched.sort(key = lambda x: x[0])
-                print(
-                    time.asctime(),
-                    'Schedule updated\n',
-                    tuple(map(lambda x: x[1], watched)),
-                    sep = '', flush = True
-                )
+                watched = get_watched()
+                write_log("Schedule updated\n", tuple(map(lambda x: x[1], watched)), sep = '')
                 curr = 0
                 continue
             if curr < len(watched):
                 if sec_cnt > watched[curr][0]:
                     # This DK has passed, move on.
-                    print(time.asctime(), watched[curr][1], 'has passed.', flush = True)
+                    write_log(watched[curr][1], 'has passed.')
                     curr += 1
                     continue
                 elif sec_cnt > watched[curr][0] - 60:
