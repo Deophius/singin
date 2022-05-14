@@ -35,13 +35,15 @@ That's because it was wrong when the target program was developed.
 3. Make sure that your editor supports UTF-8. This is especially important for the man.json file.
 4. On a terminal, `cd` into that directory.
 5. Create a `include/` directory containing headers of the external library. You need to download
-   a copy of the library's DLL (x64 version) into the source directory, among with the source files.
+   a copy of the library's DLL (x64 version) into the `dbserv` directory, among with the source files.
+   Place this directory directly below project root.
 6. On the server, find the `localData.db` file and crack the password.
    (I am not getting too involved in this)
 7. Run `ipconfig` and check the subnet mask and the host's IP. Now go back to the builder.
-8. Run `make -j 4` in the source directory.
+8. Run `make -j 4` in the `dbserv` directory.
    If you would like optimizations, you can turn it on with `-e DEBUG=0`
-9. Create two files called `man.json` and `cli.json` respectively. These are the configuration files.
+9. Create two files called `man.json` and `cli.json` in `dbserv` and `client` respectively.
+   These are the configuration files.
     In `man.json`, put in these entries:
 
     * gs_path: Path to the GS executable (Forward slashes are OK)
@@ -77,9 +79,9 @@ That's because it was wrong when the target program was developed.
 
 10. You will need to copy the following files into your removable disk:
 
-    * `*.exe`
-    * `man.json`
-    * `dbman.pyw`
+    * `dbserv/*.exe`
+    * `dbserv/man.json`
+    * `dbserv/dbman.pyw`
     * `watchdog.pyw`
     * All the DLLs in the same directory as your `g++.exe` (or the compiler you use)
 

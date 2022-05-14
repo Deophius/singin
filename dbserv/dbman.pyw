@@ -72,9 +72,11 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 creationflags = subprocess.CREATE_NO_WINDOW,
                 check = True
             )
+            if p.returncode != 0:
+                raise RuntimeError(p.stderr)
             result['name'] = p.stdout.strip('\n').split()
-        except subprocess.CalledProcessError as ex:
-            result['what'] = 'Failed to invoke report_absent\n' + ex.stderr
+        except RuntimeError as ex:
+            result['what'] = 'Failed to invoke report_absent\n' + ex.args[0]
             result['success'] = False
         self.write_object(result)
 
@@ -85,24 +87,25 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         try:
             if req['mode'] not in ('c', 'r'):
                 raise ValueError
-            subprocess.run(
+            p = subprocess.run(
                 ["write_record"],
                 input = f"{config['dbname']} {config['passwd']} {req['sessid']} {req['mode']}\n"
                     + ' '.join(req['name']),
                 text = True,
                 encoding='utf-8',
                 creationflags = subprocess.CREATE_NO_WINDOW,
-                check = True
             )
+            if p.returncode != 0:
+                raise RuntimeError(p.stderr)
         except KeyError as ex:
             result['success'] = False
             result['what'] = 'request did not include ' + ex.args[0]
         except ValueError:
             result['success'] = False
             result['what'] = 'Unknown mode: ' + str(req['mode'])
-        except subprocess.CalledProcessError as ex:
+        except RuntimeError as ex:
             result['success'] = False
-            result['what'] = ex.stderr
+            result['what'] = ex.args[0]
         except:
             result['what'] = 'Failed to invoke write_record'
             result['success'] = False

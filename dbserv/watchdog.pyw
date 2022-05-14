@@ -36,9 +36,12 @@ def read_today_info():
             encoding = 'utf-8',
             text = True,
             creationflags = subprocess.CREATE_NO_WINDOW,
-            input = f"{config['dbname']} {config['passwd']}"
+            input = f"{config['dbname']} {config['passwd']}",
         )
-    except subprocess.CalledProcessError as ex:
+        if p.returncode != 0:
+            raise ValueError(p.stderr)
+    except ValueError as ex:
+        write_log('today_info failed with standard error:\n' + ex.args[0])
         # For some reason, nothing in DB.
         # Doing nothing is absolutely safe.
         return []
@@ -128,7 +131,7 @@ def worker(lesson : LessonInfo):
     need_sign = absent_names - invalid_names
     write_log(len(need_sign), 'need sign in.')
     try:
-        subprocess.run(
+        p = subprocess.run(
             ['write_record'],
             capture_output = False,
             encoding = 'utf-8',
@@ -136,10 +139,11 @@ def worker(lesson : LessonInfo):
             creationflags = subprocess.CREATE_NO_WINDOW,
             input = f"{config['dbname']} {config['passwd']} {read_today_info().index(lesson)} c"
                 + '\n' + ' '.join(need_sign),
-            check = True
         )
-    except subprocess.CalledProcessError:
-        write_log('write_record failed.')
+        if p.returncode != 0:
+            raise RuntimeError(p.stderr)
+    except RuntimeError as ex:
+        write_log('write_record failed. Standard error was:\n' + ex.args[0])
     else:
         write_log('write_record succeeded.')
 
