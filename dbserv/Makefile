@@ -2,9 +2,9 @@ CXX = g++
 CC = gcc
 DEBUG = true
 ifeq ($(DEBUG), true)
-	CXXFLAGS = -Wall -std=c++17 -g -I ./include/
+	CXXFLAGS = -Wall -std=c++17 -g -I ../include/
 else
-	CXXFLAGS = -Wall -std=c++17 -I ./include/ -O3
+	CXXFLAGS = -Wall -std=c++17 -I ../include/ -O3
 endif
 TARGETS = report_absent write_record today_info sess_req
 DLLS = sqlite3mc_x64.dll
