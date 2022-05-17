@@ -69,8 +69,7 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
                 text=True,
                 input = f'{config["dbname"]} {config["passwd"]} {req["sessid"]}',
                 encoding='utf-8',
-                creationflags = subprocess.CREATE_NO_WINDOW,
-                check = True
+                creationflags = subprocess.CREATE_NO_WINDOW
             )
             if p.returncode != 0:
                 raise RuntimeError(p.stderr)
