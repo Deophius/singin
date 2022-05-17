@@ -7,7 +7,7 @@ else
 	CXXFLAGS = -Wall -std=c++17 -I ../include/ -I .. -O3
 endif
 
-TARGETS = machine_id in_signin
+TARGETS = machine_id in_signin addnews
 HEADERS = ../dbman.h
 LIB = ../sqlite3mc_x64.dll
 
@@ -23,3 +23,8 @@ in_signin: in_signin.o
 	$(CXX) $^ $(LIB) -o $@
 
 in_signin.o: in_signin.cpp $(HEADERS)
+
+addnews: addnews.o
+	$(CXX) $^ $(LIB) -o $@
+
+addnws.o: addnews.cpp $(HEADERS)
