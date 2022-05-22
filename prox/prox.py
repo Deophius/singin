@@ -11,9 +11,9 @@ class ProxHandler(BaseHTTPRequestHandler):
         self.protocol_version = 'HTTP/1.1'
         self.server = 'Hugehard server'
         # The adaptors contain instances of adaptors, not class names!
-        self.adaptors = [adapt.PostRelay()]
+        self.adaptors = [adapt.DenyAllElse(), adapt.PostRelay(), adapt.GetRelay()]
         super().__init__(req, cli, serv)
-        
+
     def do_POST(self):
         for adaptor in self.adaptors:
             if adaptor.match(self):
@@ -23,9 +23,15 @@ class ProxHandler(BaseHTTPRequestHandler):
         self.send_error(404, 'Resource not found', '<h1>404 Not found</h1>')
         sys.stderr.flush()
 
+    def do_GET(self):
+        # Since all work is done in adaptors, it's safe to transfer to POST
+        print(self.client_address)
+        self.do_POST()
+
 if __name__ == '__main__':
     addr = ('', 80)
-    sys.stderr = open('prox.log', 'w', encoding = 'utf-8')
-    sys.stdout = sys.stderr
+    logging.basicConfig(level = logging.INFO, format = "%(asctime)s: %(message)s",
+        filename = 'prox.log', filemode = 'w')
     httpd = HTTPServer(addr, ProxHandler)
+    logging.info('Entering serve_forever loop.')
     httpd.serve_forever()
