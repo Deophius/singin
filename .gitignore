@@ -8,3 +8,4 @@ localData.db
 .vscode/
 include/*
 *.log
+build/*
