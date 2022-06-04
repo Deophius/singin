@@ -1,6 +1,7 @@
 #ifndef SPIRIT_LOGGER_H
 #define SPIRIT_LOGGER_H
 #include <fstream>
+#include <ctime>
 #include <string>
 
 namespace Spirit {
@@ -34,7 +35,11 @@ namespace Spirit {
 	// Template, impl must be in header
 	template <typename T>
 	std::ofstream& operator << (Logfile& file, const T& t) {
-		file.mFile << t;
+		const auto ct = []{
+			auto t = std::time(nullptr);
+			return std::localtime(&t);
+		}();
+		file.mFile << std::asctime(ct) << t;
 		return file.mFile;
 	}
 
