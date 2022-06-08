@@ -219,7 +219,11 @@ namespace Spirit {
     // This is a little slow, so you can use async() to launch it.
     // Returns the SQLite error code.
     int write_record(Connection& conn, const std::string& lesson_id,
-        std::vector<std::string> cards, Clock& clock);
+        const std::vector<std::string>& cards, Clock& clock);
+
+    // Actually the same as above, just a convenience function.
+    int write_record(Connection& conn, const std::string& lesson_id,
+        const std::vector<Student>& stu, Clock& clock);
 }
 
 #endif

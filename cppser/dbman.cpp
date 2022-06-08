@@ -244,4 +244,31 @@ namespace Spirit {
         // Now return the OK code
         return SQLITE_OK;
     }
+
+    // Some highly redundant code
+    int write_record(Connection& conn, const std::string& lesson_id,
+        const std::vector<Student>& stu, Clock& clock
+    ) {
+        std::string sql;
+        using namespace std::literals;
+        for (auto&& [unused, card] : stu) {
+            sql = "update 上课考勤 set 打卡时间='"s
+                + clock()
+                + "' where KeChengXinXi='"
+                + lesson_id
+                + "' and 卡号='"
+                + card
+                + "'";
+            try {
+                Statement stmt(conn, sql);
+                // Just to execute next.
+                stmt.next();
+            } catch (...) {
+                // Some error has occured, return the error code.
+                return ::sqlite3_errcode(conn);
+            }
+        }
+        // Now return the OK code
+        return SQLITE_OK;
+    }
 }
