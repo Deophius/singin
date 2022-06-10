@@ -39,7 +39,9 @@ namespace Spirit {
 			auto t = std::time(nullptr);
 			return std::localtime(&t);
 		}();
-		file.mFile << std::asctime(ct) << t;
+		std::string ts = std::asctime(ct);
+		ts.back() = ' ';
+		file.mFile << ts << t;
 		return file.mFile;
 	}
 
