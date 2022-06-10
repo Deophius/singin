@@ -189,7 +189,7 @@ namespace Spirit {
 
     // This structure represents a Lesson with all its data included
     struct LessonInfo {
-        // Endtime o the session.
+        // Endtime of the session.
         int endtime;
         // Lesson ID as a string obtained from DB
         std::string id;
@@ -206,8 +206,8 @@ namespace Spirit {
     // This represents a student, with his or her name and card number.
     struct Student {
         // name: UTF-8 encoded string.
-        // cardnum: The card number.
-        std::string name, cardnum;
+        // id: student's id
+        std::string name, id;
     };
 
     // Gets a vector of Students who are still absent.

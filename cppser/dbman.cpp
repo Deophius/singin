@@ -204,7 +204,7 @@ namespace Spirit {
 
     std::vector<Student> report_absent(Connection& conn, const std::string& lesson_id) {
         using namespace std::literals;
-        const std::string sql = "select 卡号, 学生名称 from 上课考勤 where KeChengXinXi = '"s
+        const std::string sql = "select 学生编号, 学生名称 from 上课考勤 where KeChengXinXi = '"s
             + lesson_id + "'and 打卡时间 is null";
         Statement stmt(conn, sql);
         std::vector<Student> ans;
@@ -213,24 +213,29 @@ namespace Spirit {
             if (!row)
                 break;
             ans.emplace_back();
-            ans.back().cardnum = row->get<std::string>(0);
+            ans.back().id = row->get<std::string>(0);
             ans.back().name = row->get<std::string>(1);
         }
         return ans;
     }
 
     int write_record(Connection& conn, const std::string& lesson_id,
-        std::vector<std::string> cards, Clock& clock
+        std::vector<std::string> ids, Clock& clock
     ) {
         std::string sql;
         using namespace std::literals;
-        for (auto&& card : cards) {
+        {
+            // Begin the transaction
+            Statement stmt(conn, "begin transaction");
+            stmt.next();
+        }
+        for (auto&& id : ids) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
                 + "' where KeChengXinXi='"
                 + lesson_id
-                + "' and 卡号='"
-                + card
+                + "' and 学生编号='"
+                + id
                 + "'";
             try {
                 Statement stmt(conn, sql);
@@ -240,6 +245,12 @@ namespace Spirit {
                 // Some error has occured, return the error code.
                 return ::sqlite3_errcode(conn);
             }
+        }
+        try {
+            Statement stmt(conn, "end transaction");
+            stmt.next();
+        } catch (...) {
+            return ::sqlite3_errcode(conn);
         }
         // Now return the OK code
         return SQLITE_OK;
@@ -251,13 +262,13 @@ namespace Spirit {
     ) {
         std::string sql;
         using namespace std::literals;
-        for (auto&& [unused, card] : stu) {
+        for (auto&& [unused, id] : stu) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
                 + "' where KeChengXinXi='"
                 + lesson_id
-                + "' and 卡号='"
-                + card
+                + "' and 学生编号='"
+                + id
                 + "'";
             try {
                 Statement stmt(conn, sql);
