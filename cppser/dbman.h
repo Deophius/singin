@@ -8,10 +8,14 @@
 #include <optional>
 #include <random>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace Spirit {
     using namespace std::string_literals;
     using std::experimental::observer_ptr;
+
+    // Directly "borrow" the config structure.
+    using Configuration = nlohmann::json;
 
     struct ErrorOpeningDatabase : public std::runtime_error {
         ErrorOpeningDatabase() : runtime_error("Error opening database!") {}
