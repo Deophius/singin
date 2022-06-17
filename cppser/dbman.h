@@ -193,10 +193,11 @@ namespace Spirit {
         int endtime;
         // Lesson ID as a string obtained from DB
         std::string id;
+        // Anpai id, required for accessing the get_leave_info API.
+        int anpai;
     };
 
     // Returns a vector of today's lessons' information
-    // start_time and end_time has format xx:xx:xx
     // Expects that the database now contains the required info
     std::vector<LessonInfo> get_lesson(Connection& conn);
 

@@ -8,8 +8,12 @@ int main() {
     std::cin >> dbname >> lessonid;
     std::string passwd = "123";
     Spirit::Connection conn(dbname, passwd);
-    auto absent = Spirit::report_absent(conn, lessonid);
+    auto lessons = Spirit::get_lesson(conn);
     std::ofstream fout("output.txt", std::ios::out);
+    for (auto&& lesson : lessons) {
+        fout << "Lesson " << lesson.id << " finishes at " << lesson.endtime << " has anpai " << lesson.anpai << '\n';
+    }
+    auto absent = Spirit::report_absent(conn, lessonid);
     for (auto&& [name, cardnum] : absent) {
         fout << name << ' ' << cardnum << '\n';
     }

@@ -176,9 +176,9 @@ namespace Spirit {
     }
 
     std::vector<LessonInfo> get_lesson(Connection& conn) {
-        const std::string query = "select ID, 考勤结束时间 from \
-        课程信息 where 考勤开始时间 > datetime('now', 'localtime', 'start of day') \
-        and 考勤开始时间 < datetime('now', 'localtime', 'start of day', '1 day')";
+        const std::string query = "select ID, 考勤结束时间, 安排ID from \
+        课程信息 where 考勤结束时间 > datetime('now', 'localtime', 'start of day') \
+        and 考勤结束时间 < datetime('now', 'localtime', 'start of day', '1 day')";
         Statement stmt(conn, query);
         std::vector<LessonInfo> res;
         while (true) {
@@ -188,6 +188,7 @@ namespace Spirit {
             res.emplace_back();
             res.back().id = row->get<std::string>(0);
             res.back().endtime = Clock::str2time(row->get<std::string>(1).substr(11, 8));
+            res.back().anpai = row->get<int>(2);
         }
         return res;
     }
