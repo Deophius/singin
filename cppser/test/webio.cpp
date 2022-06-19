@@ -8,7 +8,12 @@ int main() {
     std::cin >> dbname >> configstr;
     auto config = nlohmann::json::parse(configstr);
     Connection conn(dbname, passwd);
-    auto lesson = get_lesson(conn).back();
+    auto lessons = get_lesson(conn);
+    if (lessons.size() == 0) {
+        std::cout << "Please check that there's at least one lesson in the DB!\n";
+        return 1;
+    }
+    auto lesson = lessons.back();
     std::cout << "Lesson ANPAI is " << lesson.anpai << '\n';
     auto absent = report_absent(conn, lesson.id);
     std::cout << "There are " << absent.size() << " people absent.\n";
