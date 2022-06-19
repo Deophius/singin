@@ -191,6 +191,13 @@ namespace Spirit {
         virtual std::string operator() () override;
     };
 
+    // This clock returns the start of day time, with the T character in place.
+    // Intended for API manipulation, not for sign in purposes!
+    class DayBeginClock : public Clock {
+    public:
+        [[nodiscard]] virtual std::string operator() () override;
+    };
+
     // This structure represents a Lesson with all its data included
     struct LessonInfo {
         // Endtime of the session.

@@ -175,6 +175,16 @@ namespace Spirit {
         return res;
     }
 
+    std::string DayBeginClock::operator() () {
+        std::string res = "2030-03-02T00:00:00";
+        const auto ct = []{
+            auto t = std::time(nullptr);
+            return std::localtime(&t);
+        }();
+        set_date(res, ct);
+        return res;
+    }
+
     std::vector<LessonInfo> get_lesson(Connection& conn) {
         const std::string query = "select ID, 考勤结束时间, 安排ID from \
         课程信息 where 考勤结束时间 > datetime('now', 'localtime', 'start of day') \
