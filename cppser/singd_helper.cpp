@@ -61,58 +61,46 @@ namespace Spirit {
         // RAII object to ensure log is flushed when error occurs.
         LogSection log_section(logfile);
         // Write the request.
-        {
-            asio::streambuf req;
-            std::ostream req_stream(&req);
-            req_stream << "POST " << url << " HTTP/1.1\r\n"
-                << "Content-Type: application/json\r\n"
-                << "Host: " << host << "\r\n"
-                << "Content-Length: " << req_body.size() << "\r\n"
-                << "Connection: close\r\n\r\n"
-                << req_body;
-            logfile << "About to connect\n";
+        asio::streambuf req;
+        std::ostream req_stream(&req);
+        req_stream << "POST " << url << " HTTP/1.1\r\n"
+            << "Content-Type: application/json\r\n"
+            << "Host: " << host << "\r\n"
+            << "Content-Length: " << req_body.size() << "\r\n"
+            << "Connection: close\r\n\r\n"
+            << req_body;
+        logfile << "About to connect\n";
+        try {
             asio::connect(socket, resolver.resolve(host, "http"));
-            logfile << "Connected\nAbout to write.\n";
-            asio::write(socket, req);
-            logfile << "Written.\n";
+        } catch (const boost::system::system_error& ex) {
+            throw NetworkError(ex.what());
         }
+        logfile << "Connected\nAbout to write.\n";
+        asio::write(socket, req);
+        logfile << "Written.\n";
         // Start the receive section
         asio::streambuf response;
-        asio::read_until(socket, response, "\r\n");
+        boost::system::error_code ec;
+        asio::read(socket, response, ec);
+        if (ec && ec != asio::error::eof)
+            throw NetworkError(boost::system::system_error(ec).what());
         std::istream resp_stream(&response);
-        {
-            // Status code line
-            std::string http_version, status_msg;
-            int status_code;
-            resp_stream >> http_version >> status_code;
-            std::getline(resp_stream, status_msg);
-            if (!resp_stream || http_version.substr(0, 5) != "HTTP/")
-                throw NetworkError("Invalid response from server, no HTTP version.");
-            if (status_code != 200 && status_code != 302)
-                throw NetworkError("Status code: " + std::to_string(status_code) + " " + status_msg);
+        // Now start the first line
+        int status_code = 0;
+        std::string status_msg, http_version;
+        resp_stream >> http_version >> status_code >> status_msg;
+        if (status_code != 200 && status_code != 302)
+            throw NetworkError("Fail status code: "s + std::to_string(status_code));
+        std::string lastline, currline;
+        while (resp_stream) {
+            std::getline(resp_stream, currline);
+            if (currline.back() == '\r')
+                currline.pop_back();
+            if (currline.size())
+                lastline = currline;
         }
-        logfile << "Received status code line\n";
-        // Directly ignore all headers
-        try {
-            asio::read_until(socket, response, "\r\n\r\n");
-            std::string header;
-            while (std::getline(resp_stream, header) && header != "\r")
-                ;
-        } catch (const boost::system::system_error& ex) {
-            throw NetworkError("While reading header, "s + ex.what());
-        }
-        logfile << "Headers ignored!\n";
-        // Finally, read the last line of response, which is the body.
-        try {
-            asio::read_until(socket, response, "\r\n");
-        } catch (const boost::system::system_error& ex) {
-            throw NetworkError("While reading body, "s + ex.what());
-        }
-        std::string body;
-        // It seems that there are no whitespaces in the server's reply.
-        resp_stream >> body;
-        logfile << "Body is:\n" << body << '\n';
-        return nlohmann::json::parse(body);
+        logfile << lastline;
+        return nlohmann::json::parse(lastline);
     }
 
     nlohmann::json get_leave_info(
@@ -139,6 +127,6 @@ namespace Spirit {
         if (fut_status == std::future_status::ready)
             return fut.get();
         else
-            return nlohmann::json();
+            throw NetworkError("execute_request timed out.");
     }
 }

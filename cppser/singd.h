@@ -102,7 +102,10 @@ namespace Spirit {
     // A wrapper around execute request which handles the timeouts.
     // Timeout is expressed in seconds.
     // If the result is retrieved within time, returns the result.
-    // Otherwise, returns a null json object.
+    // Throws NetworkError on network related errors or time out.
+    // logic_error if the URL in the config cannot be interpreted.
+    // nlohmann::json::parse_error if the response from the server
+    // cannot be parsed as JSON.
     nlohmann::json get_leave_info(
         const Configuration& config,
         const std::vector<Student>& absent,

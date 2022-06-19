@@ -16,7 +16,7 @@ int main() {
     output << "Starting test session\n";
     try {
         auto result = get_leave_info(config, absent, lesson, output);
-        std::cout << "For detailed trace, see output.txt.\n" << result << '\n';
+        std::cout << "For detailed trace, see output.txt.\n" << result.dump(4) << '\n';
     } catch (const NetworkError& ex) {
         std::cout << ex.what() << std::endl;
         return 1;
