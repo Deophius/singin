@@ -216,7 +216,7 @@ namespace Spirit {
     std::vector<Student> report_absent(Connection& conn, const std::string& lesson_id) {
         using namespace std::literals;
         const std::string sql = "select 学生编号, 学生名称 from 上课考勤 where KeChengXinXi = '"s
-            + lesson_id + "'and 打卡时间 is null";
+            + lesson_id + "'and 打卡时间 is null and 是否排除考勤 = 0";
         Statement stmt(conn, sql);
         std::vector<Student> ans;
         while (true) {

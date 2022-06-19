@@ -6,7 +6,7 @@
 namespace Spirit {
     std::vector<LessonInfo> near_exits(Connection& conn) {
         std::vector<LessonInfo> ans;
-        const std::string sql = "select 考勤结束时间, ID from 课程信息 where "
+        const std::string sql = "select 考勤结束时间, ID, 安排ID from 课程信息 where "
             "考勤结束时间 > datetime('now', 'localtime') and "
             "考勤结束时间 < datetime('now', 'localtime', '3 minutes')";
         Statement stmt(conn, sql);
@@ -16,7 +16,8 @@ namespace Spirit {
                 break;
             ans.push_back({
                 Clock::str2time(row->get<std::string>(0).substr(11)),
-                row->get<std::string>(1)
+                row->get<std::string>(1),
+                row->get<int>(2)
             });
         }
         return ans;
@@ -99,7 +100,7 @@ namespace Spirit {
             if (currline.size())
                 lastline = currline;
         }
-        logfile << lastline;
+        logfile << lastline << '\n';
         return nlohmann::json::parse(lastline);
     }
 

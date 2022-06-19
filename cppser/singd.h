@@ -43,6 +43,12 @@ namespace Spirit {
 
         // The worker thread. The necessary data is passed in through *this.
         void worker();
+
+        // Process a lesson. Automatically checks whoever is absent, gets the leave info
+        // and writes those who are absent and at school to database.
+        // However, this does not check whether the lesson has been processed.
+        // Exceptions: NetworkError, logic_error, nlohmann::json::parse_error
+        void process_lesson(Connection& localdata, const LessonInfo& lesson, Logfile& logfile);
     };
 
     // Impl of the singin server, from dbman.pyw
