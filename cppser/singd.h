@@ -4,6 +4,7 @@
 #include <atomic>
 #include <shared_mutex>
 #include "dbman.h"
+#include "logger.h"
 
 // Spirit: The two daemon classes.
 namespace Spirit {
@@ -70,6 +71,45 @@ namespace Spirit {
         // The lock protecting mConfig.
         std::shared_mutex& mKennelMutex;
     };
+
+    // Pull out the helper functions to facilitate testing.
+    // Returns the list of lessons that will end DK in less than 3 minutes.
+    std::vector<LessonInfo> near_exits(Connection& conn);
+
+    // Error class for network errors
+    struct NetworkError : public std::runtime_error {
+        using std::runtime_error::runtime_error;
+    };
+
+    // This function parses the data in the config. The ref parameters are output.
+    // Throws logic_error if the URL is empty or doesn't contain a host name like 127.0.0.1
+    void parse_url(const Configuration& config, std::string& host, std::string& url);
+
+    // Executes the request to leave_info and returns the result body.
+    // Throws std::runtime_error on any error.
+    // This is a very lengthy operation, so you **must** use a future/promise mechanism to invoke it
+    // in order to achieve reasonable timeout functionality (std::async wouldn't work because the future's
+    // dtor waits in that case)
+    // Because when this is executing in a different thread, the parent should be waiting,
+    // so we dare pass log files around.
+    nlohmann::json execute_request(
+        const Configuration& config,
+        const std::vector<Student>& absent,
+        const LessonInfo& lesson,
+        Logfile& logfile
+    );
+
+    // A wrapper around execute request which handles the timeouts.
+    // Timeout is expressed in seconds.
+    // If the result is retrieved within time, returns the result.
+    // Otherwise, returns a null json object.
+    nlohmann::json get_leave_info(
+        const Configuration& config,
+        const std::vector<Student>& absent,
+        const LessonInfo& lesson,
+        Logfile& logfile,
+        int timeout = 5
+    );
 }
 
 #endif
