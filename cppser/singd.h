@@ -2,19 +2,19 @@
 #define SPIRIT_SINGD_H
 #include <thread>
 #include <atomic>
-#include <shared_mutex>
 #include "dbman.h"
 #include "logger.h"
 
 // Spirit: The two daemon classes.
 namespace Spirit {
     // Functionality from watchdog.pyw
+    // To avoid data races, we prohibit setting watchdog config if there are lessons
+    // that are about to end.
     class Watchdog {
     public:
         // config provides observer access to the config file.
-        // The owner should be the main thread. Every time we try to read
-        // synchronously, we must first acquire the lock.
-        Watchdog(const Spirit::Configuration& config, std::shared_mutex& mut);
+        // The owner should be the main thread.
+        Watchdog(const Spirit::Configuration& config);
 
         // Disable copying
         Watchdog(const Watchdog&) = delete;
@@ -38,8 +38,6 @@ namespace Spirit {
         std::atomic_bool mStopToken{ false };
         // Shared access to the config.
         const Spirit::Configuration& mConfig;
-        // Mutex protecting the configuration, let's call it the kennel mutex.
-        std::shared_mutex& mKennelMutex;
 
         // The worker thread. The necessary data is passed in through *this.
         void worker();
@@ -55,7 +53,7 @@ namespace Spirit {
     class Singer {
     public:
         // Initializes this with a shared configuration file and the lock.
-        Singer(Spirit::Configuration& config, std::shared_mutex& mutex);
+        Singer(Spirit::Configuration& config);
 
         // Disable copying
         Singer(const Singer&) = delete;
@@ -74,8 +72,6 @@ namespace Spirit {
         // Ref to the configuration var. Because modifications occur in this thread,
         // this is not const.
         Spirit::Configuration& mConfig;
-        // The lock protecting mConfig.
-        std::shared_mutex& mKennelMutex;
     };
 
     // Pull out the helper functions to facilitate testing.

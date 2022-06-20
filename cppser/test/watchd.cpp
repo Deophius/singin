@@ -8,8 +8,7 @@ int main() {
     nlohmann::json config;
     std::ifstream config_file("man.json", std::ios::in);
     config_file >> config;
-    std::shared_mutex mut;
-    Watchdog watchdog(config, mut);
+    Watchdog watchdog(config);
     watchdog.start();
     std::system("pause");
 }

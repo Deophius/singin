@@ -3,8 +3,8 @@
 
 namespace Spirit {
     // Chores come first.
-    Watchdog::Watchdog(const Spirit::Configuration& config, std::shared_mutex& kennel) :
-        mConfig(config), mKennelMutex(kennel)
+    Watchdog::Watchdog(const Spirit::Configuration& config) :
+        mConfig(config)
     {}
 
     Watchdog::~Watchdog() noexcept {
@@ -18,8 +18,8 @@ namespace Spirit {
         mThread.reset(new std::thread([this]{ worker(); }));
     }
 
-    Singer::Singer(Spirit::Configuration& config, std::shared_mutex& mut) :
-        mConfig(config), mKennelMutex(mut)
+    Singer::Singer(Spirit::Configuration& config) :
+        mConfig(config)
     {}
 
     void Watchdog::process_lesson(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
