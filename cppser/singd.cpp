@@ -106,6 +106,7 @@ namespace Spirit {
                 } catch (const NetworkError& ex) {
                     // Network error means that we can try again.
                     log << "NetworkError: " << ex.what() << '\n';
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
                 } catch (const std::logic_error& ex) {
                     log << "logic_error: " << ex.what() << '\n';
                     // Very bad config file, just skip it

@@ -70,15 +70,18 @@ namespace Spirit {
             << "Content-Length: " << req_body.size() << "\r\n"
             << "Connection: close\r\n\r\n"
             << req_body;
-        logfile << "About to connect\n";
         try {
             asio::connect(socket, resolver.resolve(host, "http"));
         } catch (const boost::system::system_error& ex) {
             throw NetworkError(ex.what());
         }
-        logfile << "Connected\nAbout to write.\n";
-        asio::write(socket, req);
-        logfile << "Written.\n";
+        logfile << "Connected to the school server.\n";
+        try {
+            asio::write(socket, req);
+        } catch (const boost::system::system_error& ex) {
+            throw NetworkError(ex.what());
+        }
+        logfile << "Request written..\n";
         // Start the receive section
         asio::streambuf response;
         boost::system::error_code ec;
