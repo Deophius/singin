@@ -25,7 +25,7 @@ namespace Spirit {
 
     void parse_url(const Configuration& config, std::string& host, std::string& url) {
         // First, we will get the URL.
-        url = config["url_leave_info"];
+        url = config["url_stu_new"];
         // The host is matched with this raw regex
         std::regex re(R"(\d+\.\d+\.\d+\.\d+)");
         std::smatch matched;
@@ -47,11 +47,10 @@ namespace Spirit {
         // The request body
         const std::string req_body = [&]{
             nlohmann::json j;
-            j["courseid"] = lesson.anpai;
-            j["coursedate"] = DayBeginClock()();
-            j["studentids"] = nlohmann::json::array();
-            for (const auto& student : absent)
-                j["studentids"].push_back(student.id);
+            j["ID"] = lesson.anpai;
+            j["date"] = GivenTimeClock()(lesson.endtime);
+            j["isloadfacedata"] = false;
+            j["faceversion"] = 2;
             return j.dump();
         }();
         logfile << "req_body:\n" << req_body << std::endl;
@@ -88,6 +87,7 @@ namespace Spirit {
         asio::read(socket, response, ec);
         if (ec && ec != asio::error::eof)
             throw NetworkError(boost::system::system_error(ec).what());
+        logfile << "Received response.\n";
         std::istream resp_stream(&response);
         // Now start the first line
         int status_code = 0;
@@ -103,11 +103,12 @@ namespace Spirit {
             if (currline.size())
                 lastline = currline;
         }
-        logfile << lastline << '\n';
+        logfile << "Done processing.\n";
+        logfile << "Last line length: " << lastline.size() << '\n';
         return nlohmann::json::parse(lastline);
     }
 
-    nlohmann::json get_leave_info(
+    nlohmann::json get_stu_new(
         const Configuration& config,
         const std::vector<Student>& absent,
         const LessonInfo& lesson,
@@ -132,5 +133,22 @@ namespace Spirit {
             return fut.get();
         else
             throw NetworkError("execute_request timed out.");
+    }
+
+    void restart_gs(const Configuration& config, Logfile& log) {
+        namespace asio = boost::asio;
+        asio::io_context ioc;
+        asio::ip::udp::socket socket(ioc);
+        socket.open(asio::ip::udp::v4());
+        asio::ip::udp::endpoint addr(
+            asio::ip::address::from_string("127.0.0.1"), config["gs_port"].get<int>()
+        );
+        try {
+            std::string to_send = "$DoRestart";
+            socket.send_to(asio::buffer(to_send), addr);
+        } catch (const boost::system::system_error& ex) {
+            log << ex.what() << '\n';
+            throw ex;
+        }
     }
 }

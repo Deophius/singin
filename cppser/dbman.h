@@ -208,7 +208,7 @@ namespace Spirit {
         int endtime;
         // Lesson ID as a string obtained from DB
         std::string id;
-        // Anpai id, required for accessing the get_leave_info API.
+        // Anpai id, required for accessing the get_stu_new API.
         int anpai;
     };
 

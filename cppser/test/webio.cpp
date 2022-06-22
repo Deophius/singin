@@ -20,7 +20,7 @@ int main() {
     Logfile output("output.txt");
     output << "Starting test session\n";
     try {
-        auto result = get_leave_info(config, absent, lesson, output);
+        auto result = get_stu_new(config, absent, lesson, output);
         std::cout << "For detailed trace, see output.txt.\n" << result.dump(4) << '\n';
     } catch (const NetworkError& ex) {
         std::cout << ex.what() << std::endl;

@@ -108,13 +108,21 @@ namespace Spirit {
     // logic_error if the URL in the config cannot be interpreted.
     // nlohmann::json::parse_error if the response from the server
     // cannot be parsed as JSON.
-    nlohmann::json get_leave_info(
+    nlohmann::json get_stu_new(
         const Configuration& config,
         const std::vector<Student>& absent,
         const LessonInfo& lesson,
         Logfile& logfile,
         int timeout = 5
     );
+
+    // This function first attempts to restart the GS by means of socket.
+    // Direct CreateProcess will not be implemented because that situation is
+    // unlikely.
+    // Exception: NetworkError if errors related to socket occurs.
+    // However, because this function connects to localhost, even if the port specified
+    // has no sockets bound, there won't be an exception.
+    void restart_gs(const Configuration& config, Logfile& log);
 }
 
 #endif

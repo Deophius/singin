@@ -25,20 +25,32 @@ namespace Spirit {
     void Watchdog::process_lesson(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
         auto absent = report_absent(conn, lesson.id);
         // The JSON result from server
-        auto left = get_leave_info(mConfig, absent, lesson, logfile);
+        auto stu_new = get_stu_new(mConfig, absent, lesson, logfile);
+        // People who need DK
         std::vector<Student> need_card;
         need_card.reserve(absent.size());
-        for (auto&& student : absent) {
-            // true if should be included in need_card
+        // People who are invalid, represented as names
+        std::vector<std::string> invalid;
+        invalid.reserve(60);
+        // First calculate the invalids
+        for (auto&& stu : stu_new["result"]["students"]) {
+            if (stu["Invalid"])
+                invalid.push_back(stu["StudentName"]);
+        }
+        // Then O(n2) calculate the difference.
+        for (auto&& i : absent) {
             bool flag = true;
-            for (auto&& j : left["result"])
-                if (student.id == j.get<std::string>()) {
+            for (auto&& j : invalid)
+                if (i.name == j) {
                     flag = false;
                     break;
                 }
             if (flag)
-                need_card.push_back(std::move(student));
+                need_card.push_back(std::move(i));
         }
+        // If we restart here, we can take advantage of the restarting time,
+        // to avoid collision.
+        restart_gs(mConfig, logfile);
         IncrementalClock clock;
         write_record(conn, lesson.id, need_card, clock);
     }
