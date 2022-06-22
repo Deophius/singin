@@ -129,24 +129,23 @@ namespace Spirit {
     class Clock {
     private:
         std::function<int()> mDigitGen;
-    protected:
+    public:
         // These functions are to be used in subclasses. Make sure str is a 
         // string with the correct format.
 
         // Fills str[pos] and str[pos + 1] with two-digit number n
         // If n < 10, a prefix 0 is added, such as 08
-        void fill(std::string& str, int n, int pos);
+        static void fill(std::string& str, int n, int pos);
 
         // ct is the current time
-        void set_date(std::string& str, const std::tm* ct);
+        static void set_date(std::string& str, const std::tm* ct);
 
         // Returns a time str template with the millisecond part set with random digits
         std::string get_timestr_template();
 
         // Sets the hms part according to ticks
-        void set_hms(std::string& str, int ticks);
+        static void set_hms(std::string& str, int ticks);
 
-    public:
         Clock();
 
         virtual ~Clock() noexcept = default;
@@ -157,6 +156,10 @@ namespace Spirit {
         // Given a string of 'xx:xx:xx', returns the second it is in a day
         // For example, '07:00:00' -> 3600 * 7
         static int str2time(const std::string& timestr);
+
+        // Reverse of above.
+        // Format: 07:20:00
+        static std::string time2str(int ticks);
     };
 
     // This clock returns the current time in the format
@@ -191,11 +194,12 @@ namespace Spirit {
         virtual std::string operator() () override;
     };
 
-    // This clock returns the start of day time, with the T character in place.
+    // This clock returns the timestr for a particular time, with the T character in place.
     // Intended for API manipulation, not for sign in purposes!
-    class DayBeginClock : public Clock {
+    class GivenTimeClock {
     public:
-        [[nodiscard]] virtual std::string operator() () override;
+        // The time is given as the tick.
+        [[nodiscard]] std::string operator() (int ticks);
     };
 
     // This structure represents a Lesson with all its data included

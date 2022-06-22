@@ -123,6 +123,14 @@ namespace Spirit {
         return 3600 * toint(0) + 60 * toint(3) + toint(6);
     }
 
+    std::string Clock::time2str(int ticks) {
+        std::string ans = "00:00:00";
+        fill(ans, ticks / 3600, 0);
+        fill(ans, ticks / 60 % 60, 3);
+        fill(ans, ticks % 60, 6);
+        return ans;
+    }
+
     std::string CurrentClock::operator() () {
         std::string res = get_timestr_template();
         const auto ct = []{
@@ -175,13 +183,14 @@ namespace Spirit {
         return res;
     }
 
-    std::string DayBeginClock::operator() () {
+    std::string GivenTimeClock::operator() (int ticks) {
         std::string res = "2030-03-02T00:00:00";
         const auto ct = []{
             auto t = std::time(nullptr);
             return std::localtime(&t);
         }();
-        set_date(res, ct);
+        Clock::set_date(res, ct);
+        Clock::set_hms(res, ticks);
         return res;
     }
 
