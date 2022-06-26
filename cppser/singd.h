@@ -1,6 +1,7 @@
 #ifndef SPIRIT_SINGD_H
 #define SPIRIT_SINGD_H
 #include <thread>
+#include <memory>
 #include <atomic>
 #include "dbman.h"
 #include "logger.h"
@@ -65,13 +66,28 @@ namespace Spirit {
 
         // As in the design, this daemon will occupy the "main thread", so
         // its function is called mainloop.
-        // The user should create a Watchdog instance and start it before calling
-        // mainloop and pass it in.
-        [[noreturn]] void mainloop(Watchdog& watchdog);
+        [[noreturn]] void mainloop();
     private:
         // Ref to the configuration var. Because modifications occur in this thread,
         // this is not const.
         Spirit::Configuration& mConfig;
+
+        // A unique pointer to the local database. This is valid only after mainloop
+        // has been called.
+        std::unique_ptr<Connection> mLocalData;
+
+        // Many handlers for the various commands.
+        // They should take a json&, a logfile& and return another json as result.
+        // For the structure of the request and responses, see dbserv/dbman.pyw.
+        
+        // sessid starts from 0
+        nlohmann::json handle_rep_abs(const nlohmann::json& request, Logfile& log);
+
+        nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log);
+
+        nlohmann::json handle_tell(const nlohmann::json& request, Logfile& log);
+
+        static nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log); 
     };
 
     // Pull out the helper functions to facilitate testing.
