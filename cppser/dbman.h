@@ -219,7 +219,7 @@ namespace Spirit {
     // Returns the machine's ID
     std::string get_machine(Connection& conn);
 
-    // This represents a student, with his or her name and card number.
+    // This represents a student, with his or her name and id.
     struct Student {
         // name: UTF-8 encoded string.
         // id: student's id
