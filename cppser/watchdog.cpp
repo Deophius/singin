@@ -1,5 +1,4 @@
 #include "singd.h"
-#include <algorithm>
 
 namespace Spirit {
     // Chores come first.
@@ -48,10 +47,12 @@ namespace Spirit {
             if (flag)
                 need_card.push_back(std::move(i));
         }
+        if (need_card.empty())
+            return;
         // If we restart here, we can take advantage of the restarting time,
         // to avoid collision.
         restart_gs(mConfig, logfile);
-        IncrementalClock clock;
+        RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
     }
 
