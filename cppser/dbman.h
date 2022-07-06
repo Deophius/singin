@@ -8,6 +8,7 @@
 #include <optional>
 #include <random>
 #include <vector>
+#include <type_traits>
 #include <nlohmann/json.hpp>
 
 namespace Spirit {
@@ -17,8 +18,16 @@ namespace Spirit {
     // Directly "borrow" the config structure.
     using Configuration = nlohmann::json;
 
-    struct ErrorOpeningDatabase : public std::runtime_error {
-        ErrorOpeningDatabase() : runtime_error("Error opening database!") {}
+    // Base class for all SQL errors
+    struct SQLError : public std::runtime_error {
+        using runtime_error::runtime_error;
+
+        // Generates the error message according to the state of db
+        SQLError(sqlite3* db);
+    };
+
+    struct ErrorOpeningDatabase : public SQLError {
+        ErrorOpeningDatabase() : SQLError("Error opening database!") {}
     };
 
     // Simple wrapper for a database
@@ -45,23 +54,22 @@ namespace Spirit {
         operator sqlite3* () noexcept;
     };
 
-    struct ConnectionInvalid : public std::runtime_error {
-        ConnectionInvalid() : runtime_error("The connection is not valid!")
+    struct ConnectionInvalid : public SQLError {
+        ConnectionInvalid() : SQLError("The connection is not valid!")
         {}
     };
 
-    struct MultipleSQLStatements : public std::logic_error {
-        MultipleSQLStatements() : logic_error("The string contains multiple SQL statements.")
+    struct MultipleSQLStatements : public SQLError {
+        MultipleSQLStatements() : SQLError("The string contains multiple SQL statements.")
         {}
     };
 
-    struct PrepareError : public std::runtime_error {
-        PrepareError(const char* msg) : runtime_error("Error preparing statement: "s + msg)
-        {}
+    struct PrepareError : public SQLError {
+        using SQLError::SQLError;
     };
 
-    struct DiffConnectionError : public std::logic_error {
-        DiffConnectionError() : logic_error("The two Statements have different bound connections.")
+    struct DiffConnectionError : public SQLError {
+        DiffConnectionError() : SQLError("The two Statements have different bound connections.")
         {}
     };
 
@@ -113,12 +121,12 @@ namespace Spirit {
     template <typename T>
     T ResultRow::get(int col) {
         // Index starts from 0
+        static_assert(std::is_same_v<T, int> || std::is_same_v<T, std::string>,
+            "Type is not supported!");
         if (col < 0 || col >= mCnt)
             throw std::out_of_range("col is out of range!");
         if constexpr (std::is_same_v<T, int>)
             return sqlite3_column_int(mStmt->get(), col);
-        else if constexpr (std::is_same_v<T, long long>)
-            return sqlite3_column_int64(mStmt->get(), col);
         else if constexpr (std::is_same_v<T, std::string>)
             return reinterpret_cast<const char*>(sqlite3_column_text(mStmt->get(), col));
         else

@@ -54,6 +54,7 @@ namespace Spirit {
         restart_gs(mConfig, logfile);
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
+        logfile << "Invalid: " << invalid.size() << "   Need card: " << need_card.size() << '\n';
     }
 
     void Watchdog::worker() {
@@ -101,7 +102,7 @@ namespace Spirit {
                     log << "Start processing lesson " << lesson.anpai << '\n';
                     process_lesson(local_data, lesson, log);
                     // Now we have a good session
-                    log << "process_lesson returned without error.\n";
+                    log << "process_lesson returned successfully.\n";
                     last_proc = lesson.endtime;
                 } catch (const NetworkError& ex) {
                     // Network error means that we can try again.
@@ -113,11 +114,16 @@ namespace Spirit {
                     last_proc = lesson.endtime;
                 } catch (const nlohmann::json::parse_error& ex) {
                     log << "Wrong format from server: " << ex.what() << '\n';
+                } catch (const SQLError& ex) {
+                    log << "SQL Error: " << ex.what() << '\n';
                 }
             }
         } catch (const ErrorOpeningDatabase& ex) {
             log << "ErrorOpeningDatabase: " << ex.what() << '\n'
                 << "Exiting because of failure.\n";
+        } catch (const std::exception& ex) {
+            log << "Unexpected std::exception: " << ex.what() << '\n';
+            log << "Exiting!\n";
         }
     }
 }

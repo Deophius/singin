@@ -1,6 +1,9 @@
 #include "dbman.h"
 
 namespace Spirit {
+    SQLError::SQLError(sqlite3* db) : runtime_error(sqlite3_errmsg(db))
+    {}
+
     Connection::Connection(const std::string& dbname, const std::string& passwd) {
         if (sqlite3_open(dbname.data(), &mDB))
             throw ErrorOpeningDatabase();
@@ -33,14 +36,14 @@ namespace Spirit {
 
     Statement::Statement(Connection& conn, const std::string& sql) : mConn(conn) {
         if (!conn.get())
-                throw ConnectionInvalid();
+            throw ConnectionInvalid();
         // The pointer to the "tail" in the function call
         const char* tail = nullptr;
         const int rc = sqlite3_prepare_v2(mConn, sql.data(), sql.size(), &mStatement, &tail);
         if (not tail)
             throw MultipleSQLStatements();
         if (rc != SQLITE_OK)
-            throw PrepareError(sqlite3_errmsg(mConn));
+            throw PrepareError(mConn.get());
     }
 
     Statement::~Statement() noexcept {
@@ -63,7 +66,7 @@ namespace Spirit {
             return std::nullopt;
         }
         else
-            throw std::runtime_error(sqlite3_errmsg(mConn.get()));
+            throw SQLError(mConn.get());
     }
 
     bool Statement::is_end() noexcept {

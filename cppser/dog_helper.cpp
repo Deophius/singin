@@ -80,7 +80,7 @@ namespace Spirit {
         } catch (const boost::system::system_error& ex) {
             throw NetworkError(ex.what());
         }
-        logfile << "Request written..\n";
+        logfile << "Request written.\n";
         // Start the receive section
         asio::streambuf response;
         boost::system::error_code ec;
@@ -144,7 +144,7 @@ namespace Spirit {
             asio::ip::address::from_string("127.0.0.1"), config["gs_port"].get<int>()
         );
         try {
-            std::string to_send = "$DoRestart";
+            const std::string to_send = "$DoRestart";
             socket.send_to(asio::buffer(to_send), addr);
         } catch (const boost::system::system_error& ex) {
             log << ex.what() << '\n';
