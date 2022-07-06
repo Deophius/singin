@@ -97,19 +97,6 @@ namespace Spirit {
                     continue;
                 }
                 auto& lesson = near_ending.front();
-                // True if processing should proceed.
-                bool flag = false;
-                for (auto&& i : mConfig["watchdog"]) {
-                    if (i.get<int>() == lesson.endtime) {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (!flag) {
-                    log << "Lesson " << lesson.anpai << " is not in config.\n";
-                    std::this_thread::sleep_for(std::chrono::seconds(15));
-                    continue;
-                }
                 try {
                     log << "Start processing lesson " << lesson.anpai << '\n';
                     process_lesson(local_data, lesson, log);
