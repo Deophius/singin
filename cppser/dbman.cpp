@@ -242,49 +242,32 @@ namespace Spirit {
         return ans;
     }
 
-    int write_record(Connection& conn, const std::string& lesson_id,
-        std::vector<std::string> ids, Clock& clock
+    void write_record(Connection& conn, const std::string& lesson_id,
+        std::vector<std::string> names, Clock& clock
     ) {
         std::string sql;
         using namespace std::literals;
-        {
-            // Begin the transaction
-            Statement stmt(conn, "begin transaction");
-            stmt.next();
-        }
-        for (auto&& id : ids) {
+        Statement(conn, "begin transaction").next();
+        for (auto&& name : names) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
                 + "' where KeChengXinXi='"
                 + lesson_id
-                + "' and 学生编号='"
-                + id
+                + "' and 学生名称='"
+                + std::move(name)
                 + "'";
-            try {
-                Statement stmt(conn, sql);
-                // Just to execute next.
-                stmt.next();
-            } catch (...) {
-                // Some error has occured, return the error code.
-                return ::sqlite3_errcode(conn);
-            }
+            Statement(conn, sql).next();
         }
-        try {
-            Statement stmt(conn, "end transaction");
-            stmt.next();
-        } catch (...) {
-            return ::sqlite3_errcode(conn);
-        }
-        // Now return the OK code
-        return SQLITE_OK;
+        Statement(conn, "end transaction").next();
     }
 
     // Some highly redundant code
-    int write_record(Connection& conn, const std::string& lesson_id,
+    void write_record(Connection& conn, const std::string& lesson_id,
         const std::vector<Student>& stu, Clock& clock
     ) {
         std::string sql;
         using namespace std::literals;
+        Statement(conn, "begin transaction").next();
         for (auto&& [unused, id] : stu) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
@@ -293,16 +276,8 @@ namespace Spirit {
                 + "' and 学生编号='"
                 + id
                 + "'";
-            try {
-                Statement stmt(conn, sql);
-                // Just to execute next.
-                stmt.next();
-            } catch (...) {
-                // Some error has occured, return the error code.
-                return ::sqlite3_errcode(conn);
-            }
+            Statement(conn, sql).next();
         }
-        // Now return the OK code
-        return SQLITE_OK;
+        Statement(conn, "end transaction").next();
     }
 }

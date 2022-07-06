@@ -237,16 +237,15 @@ namespace Spirit {
     // Gets a vector of Students who are still absent.
     std::vector<Student> report_absent(Connection& conn, const std::string& lesson_id);
 
-    // Writes records to the database using the given clock for the given card numbers
+    // Writes records to the database using the given clock for the given names
     // for the given lesson. (Whew)
     // If access to the database is interrupted, will retry.
     // This is a little slow, so you can use async() to launch it.
-    // Returns the SQLite error code.
-    int write_record(Connection& conn, const std::string& lesson_id,
-        const std::vector<std::string>& cards, Clock& clock);
+    void write_record(Connection& conn, const std::string& lesson_id,
+        std::vector<std::string> names, Clock& clock);
 
     // Actually the same as above, just a convenience function.
-    int write_record(Connection& conn, const std::string& lesson_id,
+    void write_record(Connection& conn, const std::string& lesson_id,
         const std::vector<Student>& stu, Clock& clock);
 }
 
