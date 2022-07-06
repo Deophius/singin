@@ -16,12 +16,9 @@ class SpiritUDPHandler(socketserver.DatagramRequestHandler):
         -> {"success": true, "name": ["xxx", "xxx", ...]} on success
         -> {"success": false, "what": "error description"} on failure
 
-    {"command": "write_record", "name": ["xxx", ...], "sessid":1, ["mode": "c" or "r"]}
+    {"command": "write_record", "name": ["xxx", ...], "sessid":1}
         -> {"success": true} on success
         -> {"success": false, "what": "error description"} on failure
-        Mode c: current time, pause for 0.7s between two commits
-        Mode r: Randomly generates time.
-        If mode is empty, then defaults to "c" for backward compatibility.
 
     {"command": "restart_gs"} (Restarts GS.Terminal)
         -> {"success": true} on success

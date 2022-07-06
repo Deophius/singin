@@ -24,9 +24,9 @@ namespace Spirit {
             nlohmann::json request;
             // The result to be returned
             nlohmann::json result;
+            // Make sure to flush logs
+            LogSection log_section(logfile);
             try {
-                // Make sure to flush logs
-                LogSection log_section(logfile);
                 asio::streambuf req_buf;
                 req_buf.commit(serv_sock.receive_from(req_buf.prepare(1024), client));
                 std::istream rfile(&req_buf);
@@ -47,8 +47,9 @@ namespace Spirit {
                 const std::string command = request["command"];
                 if (command == "report_absent")
                     result = handle_rep_abs(request, logfile);
+                else if (command == "write_record")
+                    result = handle_wrt_rec(request, logfile);
             }
-            LogSection logsection(logfile);
             auto result_dumped = result.dump();
             logfile << result_dumped << '\n';
             serv_sock.send_to(boost::asio::buffer(result_dumped), client);
@@ -68,11 +69,32 @@ namespace Spirit {
             ans["what"] = "sessid out of range";
             return ans;
         }
-        // FIXME: SQL operations might throw exceptions. Add Connection::get_last_error_msg.
         ans["success"] = true;
         ans["name"] = json::array();
         for (auto&& [name, id] : report_absent(*mLocalData, lessons[sessid].id))
             ans["name"].push_back(std::move(name));
+        return ans;
+    }
+
+    json Singer::handle_wrt_rec(const json& request, Logfile& log) {
+        const auto lessons = get_lesson(*mLocalData);
+        json ans;
+        ans["success"] = false;
+        try {
+            const int sessid = request.at("sessid");
+            std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
+            CurrentClock clock;
+            if (sessid < 0 || sessid >= lessons.size())
+                throw std::out_of_range("sessid out of range!");
+            write_record(*mLocalData, lessons[sessid].id, std::move(req_names), clock);
+            ans["success"] = true;
+        } catch (const std::out_of_range& ex) {
+            ans["what"] = "out_of_range: "s + ex.what();
+        } catch (const SQLError& ex) {
+            ans["what"] = "SQL error: "s + ex.what();
+        } catch (const std::exception& ex) {
+            ans["what"] = ex.what();
+        }
         return ans;
     }
 }
