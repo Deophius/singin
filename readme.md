@@ -1,4 +1,8 @@
-# What this project is about
+# Welcome to singin
+
+We aim to automate the card sign in process for HEZ, and more!
+
+## What this project is about
 
 This project is highly specific. It only solves one problem.
 I'm sure you know what I am talking about if you already know about our situation.
@@ -31,7 +35,7 @@ That's because it was wrong when the target program was developed.
 ## Procedure for building and deployment of our project
 
 1. On the build machine, download and unzip or clone the source code into a directory.
-2. Check and double check that your client and server are on the same network.
+2. Check and double check that your client can access the server.
 3. Make sure that your editor supports UTF-8.
 4. On a terminal, `cd` into that directory.
 5. Create a `include/` directory containing headers of the external library. Place SQL headers
@@ -73,5 +77,64 @@ The file is named `man.json`. A template looks like this:
 * passwd: The password required to access the database.
 * url_stu_new: The URL to post for student info.
 * intro: The first line to appear in singer.log, customizable.
+
+## Our singin protocol
+
+This is a simple, stateless, UDP-based protocol that uses JSON as the "mime type".
+The client sends a request to the server. The request must include a `command` param, with
+additional data.
+The server's response always contains a `success` param, set to `true` if operation succeeds and
+`false` otherwise. If `success` is `false`, then there will always be a `what` data member providing
+a brief explanation of the error.
+The names of the commands should be self-explaining.
+Here we make a listing of the implemented commands and their syntax:
+
+### report_absent
+
+```json
+{"command": "report_absent", "sessid": 1}
+   -> {"success": true, "name": ["xxx", "xxx", ...]} on success
+   -> {"success": false, "what": "error description"} on failure
+```
+
+`sessid` is a non-negative integer. The order of lessons is assigned according to the sequence they
+appear in the database. On the client side, this can be determined from the response of `today_info`.
+The server implements range checks on `sessid`.
+
+### write_record
+
+```json
+{"command": "write_record", "name": ["xxx", "yyy"], "sessid":1}
+  -> {"success": true}
+  -> {"success": false, "what": "error description"}
+```
+
+`name` is a list of Chinese names. `sessid` is same as above.
+The server catches all SQL errors and return them as `what` if database operations fail.
+
+### restart_gs
+
+``` json
+{"command": "restart_gs"}
+  -> {"success": true}
+  -> {"success": false, "what": "error description"}
+```
+
+Restarts GS. On the current implementation, this will always succeed.
+
+### today_info
+
+```json
+{"command":"today_info", "machine": "NJ303"}
+   -> {"success": true, "end": ["07:20:00", "08:30:00"]}
+   -> {"success": false, "what":"Wrong machine", "machine":"BJ303"}
+   -> {"success": false, "what": "error description"}
+```
+
+Gets the lessons there are today. *Different from versions 2.x*, broadcast is no longer used!
+The client must know the IP of the server *and* its machine ID to access the server.
+If the `machine` in the request matches that of the DB, returns the list of lessons represented
+as their "endtimes". The time strings have the format shown above.
+If these two don't match, returns the machine ID in the database along with an error message.
 
 *Good luck!*
