@@ -2,11 +2,8 @@
 #define SPIRIT_DBMAN_H
 #include <sqlite3mc.h>
 
-#include <chrono>
 #include <experimental/memory>
-#include <functional>
 #include <optional>
-#include <random>
 #include <vector>
 #include <type_traits>
 #include <nlohmann/json.hpp>
@@ -204,7 +201,7 @@ namespace Spirit {
 
     // This clock returns the timestr for a particular time, with the T character in place.
     // Intended for API manipulation, not for sign in purposes!
-    class GivenTimeClock {
+    class APITimeClock {
     public:
         // The time is given as the tick.
         [[nodiscard]] std::string operator() (int ticks);

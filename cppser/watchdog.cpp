@@ -17,10 +17,6 @@ namespace Spirit {
         mThread.reset(new std::thread([this]{ worker(); }));
     }
 
-    Singer::Singer(Spirit::Configuration& config) :
-        mConfig(config)
-    {}
-
     void Watchdog::process_lesson(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
         auto absent = report_absent(conn, lesson.id);
         // The JSON result from server

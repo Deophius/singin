@@ -7,7 +7,11 @@ namespace {
 
 namespace Spirit {
     using nlohmann::json;
-    
+
+    Singer::Singer(const Spirit::Configuration& config) :
+        mConfig(config)
+    {}
+
     void Singer::mainloop() {
         namespace asio = boost::asio;
         using asio::ip::udp;

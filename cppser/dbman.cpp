@@ -1,5 +1,8 @@
 #include "dbman.h"
 
+#include <chrono>
+#include <random>
+
 namespace Spirit {
     SQLError::SQLError(sqlite3* db) : runtime_error(sqlite3_errmsg(db))
     {}
@@ -186,7 +189,7 @@ namespace Spirit {
         return res;
     }
 
-    std::string GivenTimeClock::operator() (int ticks) {
+    std::string APITimeClock::operator() (int ticks) {
         std::string res = "2030-03-02T00:00:00";
         const auto ct = []{
             auto t = std::time(nullptr);

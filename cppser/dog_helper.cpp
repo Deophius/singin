@@ -48,7 +48,7 @@ namespace Spirit {
         const std::string req_body = [&]{
             nlohmann::json j;
             j["ID"] = lesson.anpai;
-            j["date"] = GivenTimeClock()(lesson.endtime);
+            j["date"] = APITimeClock()(lesson.endtime);
             j["isloadfacedata"] = false;
             j["faceversion"] = 2;
             return j.dump();

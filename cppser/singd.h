@@ -54,7 +54,7 @@ namespace Spirit {
     class Singer {
     public:
         // Initializes this with a shared configuration file and the lock.
-        Singer(Spirit::Configuration& config);
+        Singer(const Spirit::Configuration& config);
 
         // Disable copying
         Singer(const Singer&) = delete;
@@ -68,9 +68,8 @@ namespace Spirit {
         // its function is called mainloop.
         [[noreturn]] void mainloop();
     private:
-        // Ref to the configuration var. Because modifications occur in this thread,
-        // this is not const.
-        Spirit::Configuration& mConfig;
+        // Ref to the configuration var.
+        const Spirit::Configuration& mConfig;
 
         // A unique pointer to the local database. This is valid only after mainloop
         // has been called.
