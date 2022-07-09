@@ -77,6 +77,27 @@ The file is named `man.json`. A template looks like this:
 * url_stu_new: The URL to post for student info.
 * intro: The first line to appear in singer.log, customizable.
 
+## Client configuration file
+
+This file is called `cli.json`, with a template given below:
+
+```json
+{
+    "port": 8303,
+    "defhost": "127.0.0.1",
+    "buffsize": 2048,
+    "defmachine": "BJ303",
+    "timeout": 10
+}
+```
+
+* port: The port that we use to communicate with the server.
+* defhost: The default host to inquire for information in the GUI.
+* buffsize: The size of the buffer into which the response will be received.
+  This shouldn't be too small (<1024) and would preferentially be a power of 2.
+* defmachine: The default machine ID in the GUI.
+* timeout: Timeout before the GUI decides that the server is not responding.
+
 ## Our singin protocol
 
 This is a simple, stateless, UDP-based protocol that uses JSON as the "mime type".
