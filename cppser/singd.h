@@ -85,9 +85,9 @@ namespace Spirit {
 
         nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log);
 
-        nlohmann::json handle_tell(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_today(const nlohmann::json& request, Logfile& log);
 
-        static nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log); 
+        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log); 
     };
 
     // Pull out the helper functions to facilitate testing.

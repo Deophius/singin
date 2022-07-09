@@ -14,7 +14,6 @@ That's because it was wrong when the target program was developed.
 ## Requirements on the client side
 
 1. Python 3.8, it might work on other versions, but it's not tested.
-2. It should be on the same network as the server! (Important for broadcasting)
 
 ## Requirements on the server side
 
@@ -110,7 +109,7 @@ The server implements range checks on `sessid`.
 ```
 
 `name` is a list of Chinese names. `sessid` is same as above.
-The server catches all SQL errors and return them as `what` if database operations fail.
+The server catches all SQL errors and returns them as `what` if database operations fail.
 
 ### restart_gs
 
@@ -134,7 +133,7 @@ Restarts GS. On the current implementation, this will always succeed.
 Gets the lessons there are today. *Different from versions 2.x*, broadcast is no longer used!
 The client must know the IP of the server *and* its machine ID to access the server.
 If the `machine` in the request matches that of the DB, returns the list of lessons represented
-as their "endtimes". The time strings have the format shown above.
+as their "endtimes" in the format shown above.
 If these two don't match, returns the machine ID in the database along with an error message.
 
 *Good luck!*

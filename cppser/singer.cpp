@@ -26,6 +26,8 @@ namespace Spirit {
             nlohmann::json result;
             // Make sure to flush logs
             LogSection log_section(logfile);
+            // True if should be dispatched
+            bool dispatch = true;
             try {
                 asio::streambuf req_buf;
                 req_buf.commit(serv_sock.receive_from(req_buf.prepare(1024), client));
@@ -39,16 +41,27 @@ namespace Spirit {
                 logfile << ex.what() << '\n';
                 result["success"] = false;
                 result["what"] = "Unrecognized format, "s + ex.what();
+                dispatch = false;
             }
-            if (!request.contains("command")) {
-                result["success"] = false;
-                result["what"] = "Missing command!";
-            } else {
-                const std::string command = request["command"];
-                if (command == "report_absent")
-                    result = handle_rep_abs(request, logfile);
-                else if (command == "write_record")
-                    result = handle_wrt_rec(request, logfile);
+            if (dispatch) {
+                if (!request.contains("command")) {
+                    result["success"] = false;
+                    result["what"] = "Missing command!";
+                } else {
+                    const std::string command = request["command"];
+                    if (command == "report_absent")
+                        result = handle_rep_abs(request, logfile);
+                    else if (command == "write_record")
+                        result = handle_wrt_rec(request, logfile);
+                    else if (command == "restart_gs")
+                        result = handle_restart(request, logfile);
+                    else if (command == "today_info")
+                        result = handle_today(request, logfile);
+                    else {
+                        result["success"] = false;
+                        result["what"] = "Unknown command!";
+                    }
+                }
             }
             auto result_dumped = result.dump();
             logfile << result_dumped << '\n';
@@ -83,7 +96,7 @@ namespace Spirit {
         try {
             const int sessid = request.at("sessid");
             std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
-            CurrentClock clock;
+            IncrementalClock clock;
             if (sessid < 0 || sessid >= lessons.size())
                 throw std::out_of_range("sessid out of range!");
             write_record(*mLocalData, lessons[sessid].id, std::move(req_names), clock);
@@ -96,5 +109,36 @@ namespace Spirit {
             ans["what"] = ex.what();
         }
         return ans;
+    }
+
+    json Singer::handle_today(const json& request, Logfile& log) {
+        json ans;
+        ans["success"] = false;
+        try {
+            auto machine_id = get_machine(*mLocalData);
+            if (request.at("machine") != machine_id) {
+                ans["what"] = "Wrong machine";
+                ans["machine"] = std::move(machine_id);
+                return ans;
+            }
+            // Matched here
+            auto lessons = get_lesson(*mLocalData);
+            ans["end"] = json::array();
+            for (auto&& lesson : lessons)
+                ans["end"].push_back(Clock::time2str(lesson.endtime));
+            ans["success"] = true;
+        } catch (const std::out_of_range& ex) {
+            ans["what"] = "out_of_range: "s + ex.what();
+        } catch (const SQLError& ex) {
+            ans["what"] = "SQL error: "s + ex.what();
+        } catch (const std::exception& ex) {
+            ans["what"] = ex.what();
+        }
+        return ans;
+    }
+
+    json Singer::handle_restart(const json& request, Logfile& log) {
+        restart_gs(mConfig, log);
+        return json({{ "success", true }});
     }
 }
