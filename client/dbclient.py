@@ -41,6 +41,8 @@ def send_req(host, req, funcname):
             raise RequestFailed(funcname + ': Response format incorrect!')
         except socket.timeout:
             raise RequestFailed(funcname + ": socket timed out")
+        except ConnectionResetError:
+            raise RequestFailed(funcname + ': Connection was reset! Maybe server is not up?')
 
 class RequestFailed(RuntimeError):
     def __init__(self, msg):
