@@ -12,3 +12,6 @@ target_link_libraries(watchd sqlite3mc_x64 C:/Windows/system32/ws2_32.dll spirit
 
 add_executable(song_test test/song_test.cpp)
 target_link_libraries(song_test sqlite3mc_x64 C:/Windows/system32/ws2_32.dll spirit)
+
+add_executable(spiritd app.cpp)
+target_link_libraries(spiritd sqlite3mc_x64 C:/Windows/system32/ws2_32.dll spirit)
