@@ -47,7 +47,7 @@ namespace Spirit {
             return;
         // If we restart here, we can take advantage of the restarting time,
         // to avoid collision.
-        restart_gs(mConfig, logfile);
+        send_to_gs(mConfig, logfile, "$DoRestart");
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
         logfile << "Invalid: " << invalid.size() << "   Need card: " << need_card.size() << '\n';

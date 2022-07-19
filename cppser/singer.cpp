@@ -142,7 +142,7 @@ namespace Spirit {
     }
 
     json Singer::handle_restart(const json& request, Logfile& log) {
-        restart_gs(mConfig, log);
+        send_to_gs(mConfig, log, "$DoRestart");
         return json({{ "success", true }});
     }
 }

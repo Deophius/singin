@@ -135,7 +135,7 @@ namespace Spirit {
             throw NetworkError("execute_request timed out.");
     }
 
-    void restart_gs(const Configuration& config, Logfile& log) {
+    void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg) {
         namespace asio = boost::asio;
         asio::io_context ioc;
         asio::ip::udp::socket socket(ioc);
@@ -144,8 +144,7 @@ namespace Spirit {
             asio::ip::address::from_string("127.0.0.1"), config["gs_port"].get<int>()
         );
         try {
-            const std::string to_send = "$DoRestart";
-            socket.send_to(asio::buffer(to_send), addr);
+            socket.send_to(asio::buffer(msg), addr);
         } catch (const boost::system::system_error& ex) {
             log << ex.what() << '\n';
             throw ex;

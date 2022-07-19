@@ -131,13 +131,11 @@ namespace Spirit {
         int timeout = 5
     );
 
-    // This function first attempts to restart the GS by means of socket.
-    // Direct CreateProcess will not be implemented because that situation is
-    // unlikely.
+    // This function sends a message to the GS port.
     // Exception: NetworkError if errors related to socket occurs.
     // However, because this function connects to localhost, even if the port specified
     // has no sockets bound, there won't be an exception.
-    void restart_gs(const Configuration& config, Logfile& log);
+    void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg);
 }
 
 #endif
