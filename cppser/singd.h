@@ -65,8 +65,9 @@ namespace Spirit {
         Singer& operator = (Singer&&) = default;
 
         // As in the design, this daemon will occupy the "main thread", so
-        // its function is called mainloop.
-        [[noreturn]] void mainloop();
+        // its function is called mainloop. Returns after receiving a quit
+        // command
+        void mainloop();
     private:
         // Ref to the configuration var.
         const Spirit::Configuration& mConfig;
@@ -86,7 +87,9 @@ namespace Spirit {
 
         nlohmann::json handle_today(const nlohmann::json& request, Logfile& log);
 
-        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log); 
+        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log);
+
+        nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log);
     };
 
     // Pull out the helper functions to facilitate testing.

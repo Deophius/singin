@@ -61,6 +61,13 @@ namespace Spirit {
                         result = handle_restart(request, logfile);
                     else if (command == "today_info")
                         result = handle_today(request, logfile);
+                    else if (command == "quit_spirit") {
+                        logfile << "Stopping on request from client!\n";
+                        result["success"] = true;
+                        serv_sock.send_to(boost::asio::buffer(result.dump()), client);
+                        return;
+                    } else if (command == "flush_notice")
+                        result = handle_notice(request, logfile);
                     else {
                         result["success"] = false;
                         result["what"] = "Unknown command!";
@@ -144,5 +151,10 @@ namespace Spirit {
     json Singer::handle_restart(const json& request, Logfile& log) {
         send_to_gs(mConfig, log, "$DoRestart");
         return json({{ "success", true }});
+    }
+
+    json Singer::handle_notice(const json& request, Logfile& log) {
+        send_to_gs(mConfig, log, "$DoMediaTask");
+        return {{ "success", true }};
     }
 }

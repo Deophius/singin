@@ -157,4 +157,26 @@ If the `machine` in the request matches that of the DB, returns the list of less
 as their "endtimes" in the format shown above.
 If these two don't match, returns the machine ID in the database along with an error message.
 
+### quit_spirit
+
+```json
+{"command": "quite_spirit"}
+   -> {"success": true}
+```
+
+Exits the server. Normally, this will always return true, as reporting errors in the destructors
+is kind of difficult.
+
+### flush_notice
+
+```json
+{"command": "flush_notice"}
+   -> {"success": true}
+```
+
+Using GS's port, we can inform it to get the latest notices immediately. This might be useful if
+too much network analysis breaks the network interface configuration and you cannot receive
+notifications at all. Because of the implementation, we cannot tell whether the command really took
+effect. We can only guarantee that a datagram will be sent.
+
 *Good luck!*
