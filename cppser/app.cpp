@@ -8,6 +8,26 @@ namespace Spirit {
         ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
     }
 
+    static bool check_db(const Configuration& config) {
+        try {
+            Connection conn(config["dbname"], config["passwd"]);
+            Statement(conn, "select count(type) from sqlite_master").next();
+            Statement(conn, "select count(学生名称), count(打卡时间), count(学生编号) from 上课考勤")
+                .next();
+            Statement(conn, "select count(安排ID), count(考勤结束时间), count(ID) from 课程信息").next();
+            Statement(conn, "select count(TerminalID) from Local_Visual_Publish").next();
+            return true;
+        } catch (const ErrorOpeningDatabase& ex) {
+            error_dialog("Error opening database", ex.what());
+        } catch (const SQLError& ex) {
+            error_dialog(
+                "Bad database file",
+                ex.what() + "\nMaybe your file is corrupt or password is wrong."s
+            );
+        }
+        return false;
+    }
+
     bool validate(const Configuration& config) {
         auto check_int = [&config](const char* entry) {
             return config.contains(entry) && config[entry].is_number_integer();
@@ -16,7 +36,8 @@ namespace Spirit {
             return config.contains(entry) && config[entry].is_string();
         };
         return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
-            && check_str("dbname") && check_str("passwd") && check_str("intro");
+            && check_str("dbname") && check_str("passwd") && check_str("intro")
+            && check_db(config);
     }
 
     void error_dialog(std::string_view caption, std::string_view text) {
