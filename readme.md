@@ -174,6 +174,17 @@ is kind of difficult.
    -> {"success": true}
 ```
 
+### doggie_stick
+
+```json
+{"command": "doggie_stick", "pause": true or false}
+   -> {"success": true}
+   -> {"success": false, "what": "..."} on errors, like a missing pause argument.
+```
+
+Tells the watchdog to pause or resume, respectively. Usually atomic bool operations are noexcept,
+so we will simply return a success.
+
 Using GS's port, we can inform it to get the latest notices immediately. This might be useful if
 too much network analysis breaks the network interface configuration and you cannot receive
 notifications at all. Because of the implementation, we cannot tell whether the command really took

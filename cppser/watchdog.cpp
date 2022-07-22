@@ -17,6 +17,14 @@ namespace Spirit {
         mThread.reset(new std::thread([this]{ worker(); }));
     }
 
+    void Watchdog::pause() noexcept {
+        mPauseToken = true;
+    }
+
+    void Watchdog::resume() noexcept {
+        mPauseToken = false;
+    }
+
     void Watchdog::process_lesson(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
         auto absent = report_absent(conn, lesson.id);
         // The JSON result from server
@@ -43,6 +51,7 @@ namespace Spirit {
             if (flag)
                 need_card.push_back(std::move(i));
         }
+        logfile << "Invalid: " << invalid.size() << "   Need card: " << need_card.size() << '\n';
         if (need_card.empty())
             return;
         // If we restart here, we can take advantage of the restarting time,
@@ -50,7 +59,6 @@ namespace Spirit {
         send_to_gs(mConfig, logfile, "$DoRestart");
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
-        logfile << "Invalid: " << invalid.size() << "   Need card: " << need_card.size() << '\n';
     }
 
     void Watchdog::worker() {
@@ -84,6 +92,9 @@ namespace Spirit {
                     log << "Requested stop.\n";
                     return;
                 }
+                // Then check if paused
+                if (mPauseToken)
+                    continue;
                 // Flush every loop.
                 LogSection log_section(log);
                 // Lessons that are nearing an end.

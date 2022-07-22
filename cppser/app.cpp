@@ -63,5 +63,5 @@ int main() {
     Watchdog watchdog(config);
     Singer singer(config);
     watchdog.start();
-    singer.mainloop();
+    singer.mainloop(watchdog);
 }

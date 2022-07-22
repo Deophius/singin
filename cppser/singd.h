@@ -29,14 +29,22 @@ namespace Spirit {
         // Should not block.
         void start();
 
+        // Asks the watchdog to pause, returns immediately.
+        void pause() noexcept;
+
+        // Asks the watchdog to resume.
+        void resume() noexcept;
+
         // During destruction, stops the daemon and joins the thread.
-        // If the program is running normally, this should never be reached.
         virtual ~Watchdog() noexcept;
     private:
         // The smart pointer to the thread
         std::unique_ptr<std::thread> mThread{ nullptr };
         // The stop token, true means that a request for stop is in.
         std::atomic_bool mStopToken{ false };
+        // The pause token, true means that watchdog should not process lessons,
+        // but not exit, waiting for this to become false.
+        std::atomic_bool mPauseToken{ false };
         // Shared access to the config.
         const Spirit::Configuration& mConfig;
 
@@ -67,7 +75,7 @@ namespace Spirit {
         // As in the design, this daemon will occupy the "main thread", so
         // its function is called mainloop. Returns after receiving a quit
         // command
-        void mainloop();
+        void mainloop(Watchdog& watchdog);
     private:
         // Ref to the configuration var.
         const Spirit::Configuration& mConfig;
@@ -90,6 +98,8 @@ namespace Spirit {
         nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log);
 
         nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log);
+        
+        nlohmann::json handle_doggie(const nlohmann::json& request, Logfile& log, Watchdog& watchdog);
     };
 
     // Pull out the helper functions to facilitate testing.

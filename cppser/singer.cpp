@@ -12,7 +12,7 @@ namespace Spirit {
         mConfig(config)
     {}
 
-    void Singer::mainloop() {
+    void Singer::mainloop(Watchdog& watchdog) {
         namespace asio = boost::asio;
         using asio::ip::udp;
         Logfile logfile("singer.log");
@@ -68,6 +68,8 @@ namespace Spirit {
                         return;
                     } else if (command == "flush_notice")
                         result = handle_notice(request, logfile);
+                    else if (command == "doggie_stick")
+                        result = handle_doggie(request, logfile, watchdog);
                     else {
                         result["success"] = false;
                         result["what"] = "Unknown command!";
@@ -161,5 +163,21 @@ namespace Spirit {
     json Singer::handle_notice(const json& request, Logfile& log) {
         send_to_gs(mConfig, log, "$DoMediaTask");
         return {{ "success", true }};
+    }
+
+    json Singer::handle_doggie(const json& request, Logfile& log, Watchdog& watchdog) {
+        json ans;
+        try {
+            const bool pause = request.at("pause");
+            if (pause)
+                watchdog.pause();
+            else
+                watchdog.resume();
+            ans["success"] = true;
+        } catch (const std::out_of_range& ex) {
+            ans["success"] = false;
+            ans["what"] = "Missing argument: "s + ex.what();
+        }
+        return ans;
     }
 }
