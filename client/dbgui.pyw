@@ -13,7 +13,7 @@ if __name__ == '__main__':
     # Now asker.machine_data contains meaningful things
     host, lessons = asker.host, asker.machine_data
     del asker
-    picker = LessonPicker(lessons)
+    picker = LessonPicker(lessons, host)
     picker.mainloop()
     if picker.sessid is None:
         sys.exit(0)

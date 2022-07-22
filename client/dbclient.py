@@ -57,3 +57,9 @@ def write_record(sessid, host, name):
 
 def restart_gs(host):
     send_req(host, {'command': "restart_gs"}, 'restart_gs')
+
+def flush_notice(host):
+    send_req(host, {'command': 'flush_notice'}, 'flush_notice')
+
+def doggie_stick(host, pause):
+    send_req(host, {'command': 'doggie_stick', 'pause': pause}, 'doggie_stick')

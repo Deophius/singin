@@ -75,7 +75,7 @@ class LessonPicker(Frame):
     quits and self.sessid (initially None) is the index of the picked one
     in the list passed in.
     '''
-    def __init__(self, lessons, master = None, **options):
+    def __init__(self, lessons, host, master = None, **options):
         ''' Initializer.
         
         lessons is the list of dbclient.LessonInfo objects.
@@ -83,6 +83,7 @@ class LessonPicker(Frame):
         Frame.__init__(self, master, **options)
         self.pack()
         self.sessid = None
+        self.__host = host
         self.__make_widgets(lessons)
 
     def __make_widgets(self, lessons):
@@ -98,9 +99,13 @@ class LessonPicker(Frame):
                 font = 'Consolas'
             ).pack(side = TOP)
         self.__var.set(-1)
-        Button(self, text = 'OK', command = self.__onclick, font = "Consolas").pack(side = TOP)
+        Button(self, text = 'OK', command = self.__onlesson, font = "Consolas").pack(side = TOP)
+        Label(self, text = "\nMisc operations:", font = "Consolas").pack(side = TOP)
+        Button(self, text = "Pause watchdog", command = self.__on_pause_dog, font = "Consolas").pack()
+        Button(self, text = "Resume watchdog", command = self.__on_resume_dog, font = "Consolas").pack()
+        Button(self, text = "Get news", command = self.__on_flush_notice, font = "Consolas").pack()
 
-    def __onclick(self):
+    def __onlesson(self):
         from tkinter.messagebox import showwarning
         if self.__var.get() == -1:
             showwarning('Warning', 'You have to select a lesson!')
@@ -109,6 +114,15 @@ class LessonPicker(Frame):
         self.sessid = self.__var.get()
         self.destroy()
         self.quit()
+
+    def __on_pause_dog(self):
+        dbclient.doggie_stick(self.__host, True)
+
+    def __on_resume_dog(self):
+        dbclient.doggie_stick(self.__host, False)
+
+    def __on_flush_notice(self):
+        dbclient.flush_notice(self.__host)
 
 class Reporter(Frame):
     ''' Report absent and ask who will sign in. Return value in self.signin_names,
@@ -172,7 +186,7 @@ class Reporter(Frame):
         Label(g, text = '        ').pack(side = LEFT)
         Button(g, text = 'Refresh', command = self.__refresh, font = 'Consolas').pack(side = LEFT)
         g.pack(side = TOP)
-        Button(self, text = 'Restart GS and quit', command = self.__restart).pack(anchor = N)
+        Button(self, text = 'Restart GS and quit', command = self.__restart, font = "Consolas").pack(anchor = N)
 
     def __write(self):
         ''' Underlying writer.'''
