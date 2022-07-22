@@ -81,22 +81,27 @@ namespace Spirit {
     }
 
     json Singer::handle_rep_abs(const json& request, Logfile& log) {
-        const auto lessons = get_lesson(*mLocalData);
         json ans;
-        ans["success"] = false;
-        if (!request.contains("sessid")) {
-            ans["what"] = "No sessid specified!";
-            return ans;
+        try {
+            const auto lessons = get_lesson(*mLocalData);
+            ans["success"] = false;
+            if (!request.contains("sessid")) {
+                ans["what"] = "No sessid specified!";
+                return ans;
+            }
+            const int sessid = request["sessid"];
+            if (sessid < 0 || sessid >= static_cast<int>(lessons.size())) {
+                ans["what"] = "sessid out of range";
+                return ans;
+            }
+            ans["success"] = true;
+            ans["name"] = json::array();
+                for (auto&& [name, id] : report_absent(*mLocalData, lessons[sessid].id))
+                    ans["name"].push_back(std::move(name));
+        } catch (const SQLError& ex) {
+            ans["success"] = false;
+            ans["what"] = ex.what();
         }
-        const int sessid = request["sessid"];
-        if (sessid < 0 || sessid >= static_cast<int>(lessons.size())) {
-            ans["what"] = "sessid out of range";
-            return ans;
-        }
-        ans["success"] = true;
-        ans["name"] = json::array();
-        for (auto&& [name, id] : report_absent(*mLocalData, lessons[sessid].id))
-            ans["name"].push_back(std::move(name));
         return ans;
     }
 
