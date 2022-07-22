@@ -1,6 +1,7 @@
 #include "singd.h"
 #include <boost/asio.hpp>
 #include <exception>
+#include <memory>
 #include <regex>
 
 namespace Spirit {
@@ -115,19 +116,26 @@ namespace Spirit {
         Logfile& logfile,
         int timeout
     ) {
-        std::promise<nlohmann::json> prom;
-        auto fut = prom.get_future();
-        std::thread([&]{
+        // FIXME: This will eventually cause SIGSEGV.
+        using PromType = std::promise<nlohmann::json>;
+        std::shared_ptr<PromType> prom(new PromType());
+        auto fut = prom->get_future();
+        // For thread safety concerns, copy all the data except for the logfile one.
+        // This should copy-assign the shared pointer, so prom will still be valid if
+        // get_stu_new returns a timeout error.
+        // logfile should always be valid.
+        std::thread([&logfile, &config]
+            (std::vector<Student> absent, LessonInfo lesson, std::shared_ptr<std::promise<nlohmann::json>> prom) {
             try {
-                prom.set_value(execute_request(config, absent, lesson, logfile));
+                prom->set_value(execute_request(config, absent, lesson, logfile));
             } catch (...) {
                 try {
-                    prom.set_exception(std::current_exception());
+                    prom->set_exception(std::current_exception());
                 } catch (...) {
                     logfile << "Exception occurred in execute_request, but failed to set exception!\n" << std::flush;
                 }
             }
-        }).detach();
+        }, absent, lesson, prom).detach();
         auto fut_status = fut.wait_for(std::chrono::seconds(timeout));
         if (fut_status == std::future_status::ready)
             return fut.get();
