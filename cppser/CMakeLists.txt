@@ -11,8 +11,5 @@ target_link_libraries(webio spirit)
 add_executable(watchd test/watchd.cpp)
 target_link_libraries(watchd spirit)
 
-add_executable(song_test test/song_test.cpp)
-target_link_libraries(song_test spirit)
-
 add_executable(spiritd app.cpp)
 target_link_libraries(spiritd spirit)
