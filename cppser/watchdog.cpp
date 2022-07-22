@@ -17,9 +17,13 @@ namespace Spirit {
         mThread.reset(new std::thread([this]{ worker(); }));
     }
 
-    Singer::Singer(Spirit::Configuration& config) :
-        mConfig(config)
-    {}
+    void Watchdog::pause() noexcept {
+        mPauseToken = true;
+    }
+
+    void Watchdog::resume() noexcept {
+        mPauseToken = false;
+    }
 
     void Watchdog::process_lesson(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
         auto absent = report_absent(conn, lesson.id);
@@ -47,11 +51,12 @@ namespace Spirit {
             if (flag)
                 need_card.push_back(std::move(i));
         }
+        logfile << "Invalid: " << invalid.size() << "   Need card: " << need_card.size() << '\n';
         if (need_card.empty())
             return;
         // If we restart here, we can take advantage of the restarting time,
         // to avoid collision.
-        restart_gs(mConfig, logfile);
+        send_to_gs(mConfig, logfile, "$DoRestart");
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
     }
@@ -87,6 +92,9 @@ namespace Spirit {
                     log << "Requested stop.\n";
                     return;
                 }
+                // Then check if paused
+                if (mPauseToken)
+                    continue;
                 // Flush every loop.
                 LogSection log_section(log);
                 // Lessons that are nearing an end.
@@ -101,7 +109,7 @@ namespace Spirit {
                     log << "Start processing lesson " << lesson.anpai << '\n';
                     process_lesson(local_data, lesson, log);
                     // Now we have a good session
-                    log << "process_lesson returned without error.\n";
+                    log << "process_lesson returned successfully.\n";
                     last_proc = lesson.endtime;
                 } catch (const NetworkError& ex) {
                     // Network error means that we can try again.
@@ -113,11 +121,16 @@ namespace Spirit {
                     last_proc = lesson.endtime;
                 } catch (const nlohmann::json::parse_error& ex) {
                     log << "Wrong format from server: " << ex.what() << '\n';
+                } catch (const SQLError& ex) {
+                    log << "SQL Error: " << ex.what() << '\n';
                 }
             }
         } catch (const ErrorOpeningDatabase& ex) {
             log << "ErrorOpeningDatabase: " << ex.what() << '\n'
                 << "Exiting because of failure.\n";
+        } catch (const std::exception& ex) {
+            log << "Unexpected std::exception: " << ex.what() << '\n';
+            log << "Exiting!\n";
         }
     }
 }

@@ -29,14 +29,22 @@ namespace Spirit {
         // Should not block.
         void start();
 
+        // Asks the watchdog to pause, returns immediately.
+        void pause() noexcept;
+
+        // Asks the watchdog to resume.
+        void resume() noexcept;
+
         // During destruction, stops the daemon and joins the thread.
-        // If the program is running normally, this should never be reached.
         virtual ~Watchdog() noexcept;
     private:
         // The smart pointer to the thread
         std::unique_ptr<std::thread> mThread{ nullptr };
         // The stop token, true means that a request for stop is in.
         std::atomic_bool mStopToken{ false };
+        // The pause token, true means that watchdog should not process lessons,
+        // but not exit, waiting for this to become false.
+        std::atomic_bool mPauseToken{ false };
         // Shared access to the config.
         const Spirit::Configuration& mConfig;
 
@@ -54,7 +62,7 @@ namespace Spirit {
     class Singer {
     public:
         // Initializes this with a shared configuration file and the lock.
-        Singer(Spirit::Configuration& config);
+        Singer(const Spirit::Configuration& config);
 
         // Disable copying
         Singer(const Singer&) = delete;
@@ -65,12 +73,12 @@ namespace Spirit {
         Singer& operator = (Singer&&) = default;
 
         // As in the design, this daemon will occupy the "main thread", so
-        // its function is called mainloop.
-        [[noreturn]] void mainloop();
+        // its function is called mainloop. Returns after receiving a quit
+        // command
+        void mainloop(Watchdog& watchdog);
     private:
-        // Ref to the configuration var. Because modifications occur in this thread,
-        // this is not const.
-        Spirit::Configuration& mConfig;
+        // Ref to the configuration var.
+        const Spirit::Configuration& mConfig;
 
         // A unique pointer to the local database. This is valid only after mainloop
         // has been called.
@@ -85,9 +93,13 @@ namespace Spirit {
 
         nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log);
 
-        nlohmann::json handle_tell(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_today(const nlohmann::json& request, Logfile& log);
 
-        static nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log); 
+        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log);
+
+        nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log);
+        
+        nlohmann::json handle_doggie(const nlohmann::json& request, Logfile& log, Watchdog& watchdog);
     };
 
     // Pull out the helper functions to facilitate testing.
@@ -132,13 +144,11 @@ namespace Spirit {
         int timeout = 5
     );
 
-    // This function first attempts to restart the GS by means of socket.
-    // Direct CreateProcess will not be implemented because that situation is
-    // unlikely.
+    // This function sends a message to the GS port.
     // Exception: NetworkError if errors related to socket occurs.
     // However, because this function connects to localhost, even if the port specified
     // has no sockets bound, there won't be an exception.
-    void restart_gs(const Configuration& config, Logfile& log);
+    void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg);
 }
 
 #endif
