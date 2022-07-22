@@ -37,7 +37,7 @@ namespace Spirit {
                 req_buf.commit(serv_sock.receive_from(req_buf.prepare(1024), client));
                 std::istream rfile(&req_buf);
                 rfile >> request;
-                logfile << "Received: " << request.dump() << '\n';
+                logfile << client << ": " << request.dump() << '\n';
             } catch (const boost::system::system_error& ex) {
                 logfile << ex.what() << '\n';
                 continue;
