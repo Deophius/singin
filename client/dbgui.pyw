@@ -11,9 +11,9 @@ if __name__ == '__main__':
     if asker.machine_data is None:
         sys.exit(0)
     # Now asker.machine_data contains meaningful things
-    host, lessons = asker.machine_data
+    host, lessons = asker.host, asker.machine_data
     del asker
-    picker = LessonPicker(lessons)
+    picker = LessonPicker(lessons, host)
     picker.mainloop()
     if picker.sessid is None:
         sys.exit(0)

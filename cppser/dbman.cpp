@@ -1,6 +1,12 @@
 #include "dbman.h"
 
+#include <chrono>
+#include <random>
+
 namespace Spirit {
+    SQLError::SQLError(sqlite3* db) : runtime_error(sqlite3_errmsg(db))
+    {}
+
     Connection::Connection(const std::string& dbname, const std::string& passwd) {
         if (sqlite3_open(dbname.data(), &mDB))
             throw ErrorOpeningDatabase();
@@ -33,14 +39,14 @@ namespace Spirit {
 
     Statement::Statement(Connection& conn, const std::string& sql) : mConn(conn) {
         if (!conn.get())
-                throw ConnectionInvalid();
+            throw ConnectionInvalid();
         // The pointer to the "tail" in the function call
         const char* tail = nullptr;
         const int rc = sqlite3_prepare_v2(mConn, sql.data(), sql.size(), &mStatement, &tail);
         if (not tail)
             throw MultipleSQLStatements();
         if (rc != SQLITE_OK)
-            throw PrepareError(sqlite3_errmsg(mConn));
+            throw PrepareError(mConn.get());
     }
 
     Statement::~Statement() noexcept {
@@ -63,7 +69,7 @@ namespace Spirit {
             return std::nullopt;
         }
         else
-            throw std::runtime_error(sqlite3_errmsg(mConn.get()));
+            throw SQLError(mConn.get());
     }
 
     bool Statement::is_end() noexcept {
@@ -183,7 +189,7 @@ namespace Spirit {
         return res;
     }
 
-    std::string GivenTimeClock::operator() (int ticks) {
+    std::string APITimeClock::operator() (int ticks) {
         std::string res = "2030-03-02T00:00:00";
         const auto ct = []{
             auto t = std::time(nullptr);
@@ -239,49 +245,32 @@ namespace Spirit {
         return ans;
     }
 
-    int write_record(Connection& conn, const std::string& lesson_id,
-        std::vector<std::string> ids, Clock& clock
+    void write_record(Connection& conn, const std::string& lesson_id,
+        std::vector<std::string> names, Clock& clock
     ) {
         std::string sql;
         using namespace std::literals;
-        {
-            // Begin the transaction
-            Statement stmt(conn, "begin transaction");
-            stmt.next();
-        }
-        for (auto&& id : ids) {
+        Statement(conn, "begin transaction").next();
+        for (auto&& name : names) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
                 + "' where KeChengXinXi='"
                 + lesson_id
-                + "' and 学生编号='"
-                + id
+                + "' and 学生名称='"
+                + std::move(name)
                 + "'";
-            try {
-                Statement stmt(conn, sql);
-                // Just to execute next.
-                stmt.next();
-            } catch (...) {
-                // Some error has occured, return the error code.
-                return ::sqlite3_errcode(conn);
-            }
+            Statement(conn, sql).next();
         }
-        try {
-            Statement stmt(conn, "end transaction");
-            stmt.next();
-        } catch (...) {
-            return ::sqlite3_errcode(conn);
-        }
-        // Now return the OK code
-        return SQLITE_OK;
+        Statement(conn, "end transaction").next();
     }
 
     // Some highly redundant code
-    int write_record(Connection& conn, const std::string& lesson_id,
+    void write_record(Connection& conn, const std::string& lesson_id,
         const std::vector<Student>& stu, Clock& clock
     ) {
         std::string sql;
         using namespace std::literals;
+        Statement(conn, "begin transaction").next();
         for (auto&& [unused, id] : stu) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
@@ -290,16 +279,8 @@ namespace Spirit {
                 + "' and 学生编号='"
                 + id
                 + "'";
-            try {
-                Statement stmt(conn, sql);
-                // Just to execute next.
-                stmt.next();
-            } catch (...) {
-                // Some error has occured, return the error code.
-                return ::sqlite3_errcode(conn);
-            }
+            Statement(conn, sql).next();
         }
-        // Now return the OK code
-        return SQLITE_OK;
+        Statement(conn, "end transaction").next();
     }
 }

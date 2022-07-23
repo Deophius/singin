@@ -19,9 +19,9 @@ int main() {
     }
     Spirit::IncrementalClock clock;
     auto begint = std::chrono::system_clock::now();
-    auto ret = Spirit::write_record(conn, lessonid, absent, clock);
+    Spirit::write_record(conn, lessonid, absent, clock);
     auto endt = std::chrono::system_clock::now();
     fout << "After " << std::chrono::duration_cast<std::chrono::milliseconds>
         (endt - begint).count() << "ms, ";
-    fout << "write record returned " << ret << '\n';
+    fout << "write record returned.\n";
 }

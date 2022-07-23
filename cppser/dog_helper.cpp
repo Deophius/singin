@@ -1,6 +1,7 @@
 #include "singd.h"
 #include <boost/asio.hpp>
 #include <exception>
+#include <memory>
 #include <regex>
 
 namespace Spirit {
@@ -48,7 +49,7 @@ namespace Spirit {
         const std::string req_body = [&]{
             nlohmann::json j;
             j["ID"] = lesson.anpai;
-            j["date"] = GivenTimeClock()(lesson.endtime);
+            j["date"] = APITimeClock()(lesson.endtime);
             j["isloadfacedata"] = false;
             j["faceversion"] = 2;
             return j.dump();
@@ -80,7 +81,7 @@ namespace Spirit {
         } catch (const boost::system::system_error& ex) {
             throw NetworkError(ex.what());
         }
-        logfile << "Request written..\n";
+        logfile << "Request written.\n";
         // Start the receive section
         asio::streambuf response;
         boost::system::error_code ec;
@@ -115,19 +116,25 @@ namespace Spirit {
         Logfile& logfile,
         int timeout
     ) {
-        std::promise<nlohmann::json> prom;
-        auto fut = prom.get_future();
-        std::thread([&]{
+        using PromType = std::promise<nlohmann::json>;
+        std::shared_ptr<PromType> prom(new PromType());
+        auto fut = prom->get_future();
+        // For thread safety concerns, copy all the data except for the logfile one.
+        // This should copy-assign the shared pointer, so prom will still be valid if
+        // get_stu_new returns a timeout error.
+        // logfile should always be valid.
+        std::thread([&logfile, &config]
+            (std::vector<Student> absent, LessonInfo lesson, std::shared_ptr<std::promise<nlohmann::json>> prom) {
             try {
-                prom.set_value(execute_request(config, absent, lesson, logfile));
+                prom->set_value(execute_request(config, absent, lesson, logfile));
             } catch (...) {
                 try {
-                    prom.set_exception(std::current_exception());
+                    prom->set_exception(std::current_exception());
                 } catch (...) {
                     logfile << "Exception occurred in execute_request, but failed to set exception!\n" << std::flush;
                 }
             }
-        }).detach();
+        }, absent, lesson, prom).detach();
         auto fut_status = fut.wait_for(std::chrono::seconds(timeout));
         if (fut_status == std::future_status::ready)
             return fut.get();
@@ -135,7 +142,7 @@ namespace Spirit {
             throw NetworkError("execute_request timed out.");
     }
 
-    void restart_gs(const Configuration& config, Logfile& log) {
+    void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg) {
         namespace asio = boost::asio;
         asio::io_context ioc;
         asio::ip::udp::socket socket(ioc);
@@ -144,8 +151,7 @@ namespace Spirit {
             asio::ip::address::from_string("127.0.0.1"), config["gs_port"].get<int>()
         );
         try {
-            std::string to_send = "$DoRestart";
-            socket.send_to(asio::buffer(to_send), addr);
+            socket.send_to(asio::buffer(msg), addr);
         } catch (const boost::system::system_error& ex) {
             log << ex.what() << '\n';
             throw ex;

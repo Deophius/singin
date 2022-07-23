@@ -7,8 +7,12 @@ namespace {
 
 namespace Spirit {
     using nlohmann::json;
-    
-    void Singer::mainloop() {
+
+    Singer::Singer(const Spirit::Configuration& config) :
+        mConfig(config)
+    {}
+
+    void Singer::mainloop(Watchdog& watchdog) {
         namespace asio = boost::asio;
         using asio::ip::udp;
         Logfile logfile("singer.log");
@@ -24,14 +28,16 @@ namespace Spirit {
             nlohmann::json request;
             // The result to be returned
             nlohmann::json result;
+            // Make sure to flush logs
+            LogSection log_section(logfile);
+            // True if should be dispatched
+            bool dispatch = true;
             try {
-                // Make sure to flush logs
-                LogSection log_section(logfile);
                 asio::streambuf req_buf;
                 req_buf.commit(serv_sock.receive_from(req_buf.prepare(1024), client));
                 std::istream rfile(&req_buf);
                 rfile >> request;
-                logfile << "Received: " << request.dump() << '\n';
+                logfile << client << ": " << request.dump() << '\n';
             } catch (const boost::system::system_error& ex) {
                 logfile << ex.what() << '\n';
                 continue;
@@ -39,16 +45,37 @@ namespace Spirit {
                 logfile << ex.what() << '\n';
                 result["success"] = false;
                 result["what"] = "Unrecognized format, "s + ex.what();
+                dispatch = false;
             }
-            if (!request.contains("command")) {
-                result["success"] = false;
-                result["what"] = "Missing command!";
-            } else {
-                const std::string command = request["command"];
-                if (command == "report_absent")
-                    result = handle_rep_abs(request, logfile);
+            if (dispatch) {
+                if (!request.contains("command")) {
+                    result["success"] = false;
+                    result["what"] = "Missing command!";
+                } else {
+                    const std::string command = request["command"];
+                    if (command == "report_absent")
+                        result = handle_rep_abs(request, logfile);
+                    else if (command == "write_record")
+                        result = handle_wrt_rec(request, logfile);
+                    else if (command == "restart_gs")
+                        result = handle_restart(request, logfile);
+                    else if (command == "today_info")
+                        result = handle_today(request, logfile);
+                    else if (command == "quit_spirit") {
+                        logfile << "Stopping on request from client!\n";
+                        result["success"] = true;
+                        serv_sock.send_to(boost::asio::buffer(result.dump()), client);
+                        return;
+                    } else if (command == "flush_notice")
+                        result = handle_notice(request, logfile);
+                    else if (command == "doggie_stick")
+                        result = handle_doggie(request, logfile, watchdog);
+                    else {
+                        result["success"] = false;
+                        result["what"] = "Unknown command!";
+                    }
+                }
             }
-            LogSection logsection(logfile);
             auto result_dumped = result.dump();
             logfile << result_dumped << '\n';
             serv_sock.send_to(boost::asio::buffer(result_dumped), client);
@@ -56,23 +83,101 @@ namespace Spirit {
     }
 
     json Singer::handle_rep_abs(const json& request, Logfile& log) {
+        json ans;
+        try {
+            const auto lessons = get_lesson(*mLocalData);
+            ans["success"] = false;
+            if (!request.contains("sessid")) {
+                ans["what"] = "No sessid specified!";
+                return ans;
+            }
+            const int sessid = request["sessid"];
+            if (sessid < 0 || sessid >= static_cast<int>(lessons.size())) {
+                ans["what"] = "sessid out of range";
+                return ans;
+            }
+            ans["success"] = true;
+            ans["name"] = json::array();
+                for (auto&& [name, id] : report_absent(*mLocalData, lessons[sessid].id))
+                    ans["name"].push_back(std::move(name));
+        } catch (const SQLError& ex) {
+            ans["success"] = false;
+            ans["what"] = ex.what();
+        }
+        return ans;
+    }
+
+    json Singer::handle_wrt_rec(const json& request, Logfile& log) {
         const auto lessons = get_lesson(*mLocalData);
         json ans;
         ans["success"] = false;
-        if (!request.contains("sessid")) {
-            ans["what"] = "No sessid specified!";
-            return ans;
+        try {
+            const int sessid = request.at("sessid");
+            std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
+            IncrementalClock clock;
+            if (sessid < 0 || sessid >= lessons.size())
+                throw std::out_of_range("sessid out of range!");
+            write_record(*mLocalData, lessons[sessid].id, std::move(req_names), clock);
+            ans["success"] = true;
+        } catch (const std::out_of_range& ex) {
+            ans["what"] = "out_of_range: "s + ex.what();
+        } catch (const SQLError& ex) {
+            ans["what"] = "SQL error: "s + ex.what();
+        } catch (const std::exception& ex) {
+            ans["what"] = ex.what();
         }
-        const int sessid = request["sessid"];
-        if (sessid < 0 || sessid >= static_cast<int>(lessons.size())) {
-            ans["what"] = "sessid out of range";
-            return ans;
+        return ans;
+    }
+
+    json Singer::handle_today(const json& request, Logfile& log) {
+        json ans;
+        ans["success"] = false;
+        try {
+            auto machine_id = get_machine(*mLocalData);
+            if (request.at("machine") != machine_id) {
+                ans["what"] = "Wrong machine";
+                ans["machine"] = std::move(machine_id);
+                return ans;
+            }
+            // Matched here
+            auto lessons = get_lesson(*mLocalData);
+            ans["end"] = json::array();
+            for (auto&& lesson : lessons)
+                ans["end"].push_back(Clock::time2str(lesson.endtime));
+            ans["success"] = true;
+        } catch (const std::out_of_range& ex) {
+            ans["what"] = "out_of_range: "s + ex.what();
+        } catch (const SQLError& ex) {
+            ans["what"] = "SQL error: "s + ex.what();
+        } catch (const std::exception& ex) {
+            ans["what"] = ex.what();
         }
-        // FIXME: SQL operations might throw exceptions. Add Connection::get_last_error_msg.
-        ans["success"] = true;
-        ans["name"] = json::array();
-        for (auto&& [name, id] : report_absent(*mLocalData, lessons[sessid].id))
-            ans["name"].push_back(std::move(name));
+        return ans;
+    }
+
+    json Singer::handle_restart(const json& request, Logfile& log) {
+        send_to_gs(mConfig, log, "$DoRestart");
+        return json({{ "success", true }});
+    }
+
+    json Singer::handle_notice(const json& request, Logfile& log) {
+        send_to_gs(mConfig, log, "$DoMediaTask");
+        return {{ "success", true }};
+    }
+
+    json Singer::handle_doggie(const json& request, Logfile& log, Watchdog& watchdog) {
+        json ans;
+        try {
+            const bool pause = request.at("pause");
+            if (pause)
+                watchdog.pause();
+            else
+                watchdog.resume();
+            ans["success"] = true;
+        } catch (const std::out_of_range& ex) {
+            ans["success"] = false;
+            ans["what"] = "Missing argument: "s + ex.what();
+        }
         return ans;
     }
 }
