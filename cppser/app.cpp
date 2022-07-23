@@ -30,10 +30,26 @@ namespace Spirit {
 
     bool validate(const Configuration& config) {
         auto check_int = [&config](const char* entry) {
-            return config.contains(entry) && config[entry].is_number_integer();
+            if (!config.contains(entry)) {
+                error_dialog("Missing entry", entry + " expected, but not found!"s);
+                return false;
+            }
+            if (!config[entry].is_number_integer()) {
+                error_dialog("Type error", entry + " should be an int!"s);
+                return false;
+            }
+            return true;
         };
         auto check_str = [&config](const char* entry) {
-            return config.contains(entry) && config[entry].is_string();
+            if (!config.contains(entry)) {
+                error_dialog("Missing entry", entry + " expected, but not found!"s);
+                return false;
+            }
+            if (!config[entry].is_string()) {
+                error_dialog("Type error", entry + " should be a string!"s);
+                return false;
+            }
+            return true;
         };
         return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
             && check_str("dbname") && check_str("passwd") && check_str("intro")
@@ -54,7 +70,12 @@ int main() {
         error_dialog("Config error", "Cannot open the configuration!");
         return 1;
     }
-    istr >> config;
+    try {
+        istr >> config;
+    } catch (const decltype(config)::parse_error& ex) {
+        error_dialog("Config error", ex.what());
+        return 1;
+    }
     istr.close();
     if (!validate(config)) {
         error_dialog("Config error", "Error with the man.json configuration file!");
