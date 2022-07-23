@@ -116,7 +116,6 @@ namespace Spirit {
         Logfile& logfile,
         int timeout
     ) {
-        // FIXME: This will eventually cause SIGSEGV.
         using PromType = std::promise<nlohmann::json>;
         std::shared_ptr<PromType> prom(new PromType());
         auto fut = prom->get_future();
