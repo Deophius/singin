@@ -37,7 +37,7 @@ namespace Spirit {
         };
         return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
             && check_str("dbname") && check_str("passwd") && check_str("intro")
-            && check_db(config);
+            && check_int("watchdog_poll") && check_int("retry_wait") && check_db(config);
     }
 
     void error_dialog(std::string_view caption, std::string_view text) {

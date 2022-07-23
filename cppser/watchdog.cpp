@@ -101,7 +101,7 @@ namespace Spirit {
                 auto near_ending = near_exits(local_data);
                 if (near_ending.empty() || near_ending.front().endtime == last_proc) {
                     // Nothing to do, or already processed.
-                    std::this_thread::sleep_for(std::chrono::seconds(15));
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));
                     continue;
                 }
                 auto& lesson = near_ending.front();
@@ -114,7 +114,7 @@ namespace Spirit {
                 } catch (const NetworkError& ex) {
                     // Network error means that we can try again.
                     log << "NetworkError: " << ex.what() << '\n';
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["retry_wait"]));
                 } catch (const std::logic_error& ex) {
                     log << "logic_error: " << ex.what() << '\n';
                     // Very bad config file, just skip it

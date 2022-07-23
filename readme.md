@@ -65,8 +65,10 @@ The file is named `man.json`. A template looks like this:
     "gs_port": 10031,
     "dbname": "D:/singin/localData.db",
     "passwd": "123",
-    "url_stu_new": "http://192.168.16.85//Services/SmartBoard/SmartBoardLoadSingInStudentNew/json",
-    "intro": "Spirit version 3.0 is up!"
+    "url_stu_new": "http://127.0.0.1//Services/SmartBoard/SmartBoardLoadSingInStudentNew/json",
+    "intro": "Spirit version 3.0 is up!",
+    "watchdog_poll": 15,
+    "retry_wait": 3
 }
 ```
 
@@ -76,6 +78,9 @@ The file is named `man.json`. A template looks like this:
 * passwd: The password required to access the database.
 * url_stu_new: The URL to post for student info.
 * intro: The first line to appear in singer.log, customizable.
+* watchdog_poll: The seconds watchdog waits before checking for lessons, quit, etc.
+* retry_wait: If the previous attempt to auto sign in failed because of network error, wait for
+  `retry_wait` seconds before retrying.
 
 ## Client configuration file
 
