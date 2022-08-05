@@ -13,7 +13,7 @@ That's because it was wrong when the target program was developed.
 
 ## Requirements on the client side
 
-1. Python 3.8, it might work on other versions, but it's not tested.
+1. Python 3.8 or 3.10, it might work on other versions, but it's not tested.
 
 ## Requirements on the server side
 
@@ -30,6 +30,9 @@ That's because it was wrong when the target program was developed.
    [Better SQLite3 Multiple Cipher](https://github.com/utelle/SQLite3MultipleCiphers).
    Tested version is v1.4.4.
 4. [Nlohmann JSON](https://github.com/nlohmann/json), version 3.10.5
+5. The icon for the executable was provided by [Aha soft](http://www.aha-soft.com/).
+
+Thanks for all the tools, libraries and resources the community provides so generously!
 
 ## Procedure for building and deployment of our project
 
@@ -38,8 +41,10 @@ That's because it was wrong when the target program was developed.
 3. Make sure that your editor supports UTF-8.
 4. On a terminal, `cd` into that directory.
 5. Create a `include/` directory containing headers of the external library. Place SQL headers
-   in `include/` and JSON headers in `include/nlohmann`.
-6. Configure and compile using cmake.
+   in `include/` and JSON headers in `include/nlohmann`. Kindly put sqlite3mc_x64.dll in
+   the root directory of the project.
+6. Configure and compile using cmake. If your linker complains about spirit.rc.res is not an object,
+   try explicitly telling cmake that you're using `windres` as the RC compiler.
 7. Create config files as shown below.
 8. You will need to copy the following files into your removable disk:
 
@@ -51,7 +56,7 @@ That's because it was wrong when the target program was developed.
 9. Plug in your media into the server (You will need some techniques for this.)
 10. Open task manager, kill `LockMouse.exe` and restart `explorer.exe`.
 11. Copy the files mentioned above into a folder.
-12. Go to task scheduler, add a task that starts `dbman.pyw` 2 minutes after system boot.
+12. Go to task scheduler, add a task that starts `watchd.exe` 2 minutes after system boot.
 13. Reboot to check.
 14. When asked about the firewall, allow all access.
 
@@ -179,6 +184,11 @@ is kind of difficult.
    -> {"success": true}
 ```
 
+Using GS's port, we can inform it to get the latest notices immediately. This might be useful if
+too much network analysis breaks the network interface configuration and you cannot receive
+notifications at all. Because of the implementation, we cannot tell whether the command really took
+effect. We can only guarantee that a datagram will be sent.
+
 ### doggie_stick
 
 ```json
@@ -189,10 +199,5 @@ is kind of difficult.
 
 Tells the watchdog to pause or resume, respectively. Usually atomic bool operations are noexcept,
 so we will simply return a success.
-
-Using GS's port, we can inform it to get the latest notices immediately. This might be useful if
-too much network analysis breaks the network interface configuration and you cannot receive
-notifications at all. Because of the implementation, we cannot tell whether the command really took
-effect. We can only guarantee that a datagram will be sent.
 
 *Good luck!*
