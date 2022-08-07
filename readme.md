@@ -28,35 +28,38 @@ That's because it was wrong when the target program was developed.
 2. CMake version 3.23.2
 3. This project uses library
    [Better SQLite3 Multiple Cipher](https://github.com/utelle/SQLite3MultipleCiphers).
-   Tested version is v1.4.4.
+   Tested version is v1.4.8.
 4. [Nlohmann JSON](https://github.com/nlohmann/json), version 3.10.5
 5. The icon for the executable was provided by [Aha soft](http://www.aha-soft.com/).
+6. [Boost C++ libraries](https://boost.org), version 1.79.0.
 
 Thanks for all the tools, libraries and resources the community provides so generously!
 
-## Procedure for building and deployment of our project
+## Procedure for building and deploying our project
 
 1. On the build machine, download and unzip or clone the source code into a directory.
 2. Check and double check that your client can access the server.
 3. Make sure that your editor supports UTF-8.
 4. On a terminal, `cd` into that directory.
 5. Create a `include/` directory containing headers of the external library. Place SQL headers
-   in `include/` and JSON headers in `include/nlohmann`. Kindly put sqlite3mc_x64.dll in
+   in `include/` and JSON headers in `include/nlohmann`. Kindly put `sqlite3mc_x64.dll` in
    the root directory of the project.
 6. Configure and compile using cmake. If your linker complains about spirit.rc.res is not an object,
-   try explicitly telling cmake that you're using `windres` as the RC compiler.
+   try explicitly telling cmake that you're using `windres` as the RC compiler. Also check boost path.
+   Because Boost.asio is quite large a library, we recommend precompiling it to accelerate the build.
+   However, this isn't strictly necessary.
 7. Create config files as shown below.
 8. You will need to copy the following files into your removable disk:
 
-    * `cppser/watchd.exe`
+    * `cppser/spiritd.exe`
     * `man.json`, the server config file.
     * All the DLLs in the same directory as your `g++.exe` (or the compiler you use)
-    * `sqlite3mc_x64.dll`
+    * `sqlite3mc_x64.dll` and `cppsper/libspirit.dll`
 
 9. Plug in your media into the server (You will need some techniques for this.)
 10. Open task manager, kill `LockMouse.exe` and restart `explorer.exe`.
 11. Copy the files mentioned above into a folder.
-12. Go to task scheduler, add a task that starts `watchd.exe` 2 minutes after system boot.
+12. Go to task scheduler, add a task that starts `spiritd.exe` 2 minutes after system boot.
 13. Reboot to check.
 14. When asked about the firewall, allow all access.
 
@@ -71,7 +74,7 @@ The file is named `man.json`. A template looks like this:
     "dbname": "D:/singin/localData.db",
     "passwd": "123",
     "url_stu_new": "http://127.0.0.1//Services/SmartBoard/SmartBoardLoadSingInStudentNew/json",
-    "intro": "Spirit version 3.0 is up!",
+    "intro": "Spirit version 3.1 is up!",
     "watchdog_poll": 15,
     "retry_wait": 3
 }
@@ -114,7 +117,7 @@ This is a simple, stateless, UDP-based protocol that uses JSON as the "mime type
 The client sends a request to the server. The request must include a `command` param, with
 additional data.
 The server's response always contains a `success` param, set to `true` if operation succeeds and
-`false` otherwise. If `success` is `false`, then there will always be a `what` data member providing
+`false` otherwise. If `success` is `false`, then there will always be a `what` param providing
 a brief explanation of the error.
 The names of the commands should be self-explaining.
 Here we make a listing of the implemented commands and their syntax:
@@ -141,6 +144,7 @@ The server implements range checks on `sessid`.
 
 `name` is a list of Chinese names. `sessid` is same as above.
 The server catches all SQL errors and returns them as `what` if database operations fail.
+Because we use JSON as the "mime type", the name strings should be UTF-8 encoded.
 
 ### restart_gs
 
@@ -170,7 +174,7 @@ If these two don't match, returns the machine ID in the database along with an e
 ### quit_spirit
 
 ```json
-{"command": "quite_spirit"}
+{"command": "quit_spirit"}
    -> {"success": true}
 ```
 
@@ -184,7 +188,7 @@ is kind of difficult.
    -> {"success": true}
 ```
 
-Using GS's port, we can inform it to get the latest notices immediately. This might be useful if
+Using GS's port, we can inform it to get the latest notice immediately. This might be useful if
 too much network analysis breaks the network interface configuration and you cannot receive
 notifications at all. Because of the implementation, we cannot tell whether the command really took
 effect. We can only guarantee that a datagram will be sent.

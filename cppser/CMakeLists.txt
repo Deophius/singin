@@ -1,5 +1,5 @@
 set(SOURCES dbman.cpp logger.cpp dog_helper.cpp watchdog.cpp singer.cpp)
-add_library(spirit SHARED ${SOURCES})
+add_library(spirit SHARED ${SOURCES} libspirit.rc)
 target_link_libraries(spirit C:/Windows/system32/ws2_32.dll sqlite3mc_x64)
 
 file(COPY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/spirit.ico ${CMAKE_CURRENT_BINARY_DIR}/spirit.ico)
