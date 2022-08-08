@@ -111,6 +111,21 @@ This file is called `cli.json`, with a template given below:
 * defmachine: The default machine ID in the GUI.
 * timeout: Timeout before the GUI decides that the server is not responding.
 
+## Keyboard accelerators in the GUI
+
+### First page (machine info)
+
+Press `enter` to submit the machine name and host ip info.
+
+### Second page (LessonPicker)
+
+* For the first 9 lessons that appear on the list, you can press 1-9 to
+choose them, respectively.
+* Press `enter` should have the same effect has pressing the OK button.
+* Press `p` to trigger "pause watchdog".
+* Press `r` to trigger "resume watchdog".
+* Press `g` to trigger "get latest news".
+
 ## Our singin protocol
 
 This is a simple, stateless, UDP-based protocol that uses JSON as the "mime type".

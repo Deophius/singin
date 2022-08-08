@@ -91,19 +91,30 @@ class LessonPicker(Frame):
         self.__var = IntVar()
         # This is actually a bunch of radio buttons
         for num, lesson in enumerate(lessons):
-            Radiobutton(
+            r = Radiobutton(
                 self,
                 text = str(lesson),
                 value = num,
                 variable = self.__var,
                 font = 'Consolas'
-            ).pack(side = TOP)
+            )
+            if num < 10:
+                r.bind_all(str(num + 1), lambda event, num = num: self.__var.set(num))
+            r.pack()
         self.__var.set(-1)
-        Button(self, text = 'OK', command = self.__onlesson, font = "Consolas").pack(side = TOP)
+        ok_button = Button(self, text = 'OK', command = self.__onlesson, font = "Consolas")
+        ok_button.bind_all('<Return>', lambda event: self.__onlesson())
+        ok_button.pack(side = TOP)
         Label(self, text = "\nMisc operations:", font = "Consolas").pack(side = TOP)
-        Button(self, text = "Pause watchdog", command = self.__on_pause_dog, font = "Consolas").pack()
-        Button(self, text = "Resume watchdog", command = self.__on_resume_dog, font = "Consolas").pack()
-        Button(self, text = "Get news", command = self.__on_flush_notice, font = "Consolas").pack()
+        pause_button = Button(self, text = "Pause watchdog", command = self.__on_pause_dog, font = "Consolas")
+        pause_button.bind_all('p', lambda event: self.__on_pause_dog())
+        pause_button.pack()
+        resume_button = Button(self, text = "Resume watchdog", command = self.__on_resume_dog, font = "Consolas")
+        resume_button.bind_all('r', lambda event: self.__on_resume_dog())
+        resume_button.pack()
+        news_button = Button(self, text = "Get news", command = self.__on_flush_notice, font = "Consolas")
+        news_button.bind_all('g', lambda event: self.__on_flush_notice())
+        news_button.pack()
 
     def __onlesson(self):
         from tkinter.messagebox import showwarning
@@ -173,7 +184,7 @@ class Reporter(Frame):
             sys.exit(0)
         self.__label.config(text = 'These people didn\'t DK:')
         f = Frame(self)
-        self.__listbox = Listbox(f, selectmode = EXTENDED)
+        self.__listbox = Listbox(f, selectmode = EXTENDED, font = ('YaHei', 20))
         self.__listbox.insert(END, *self.__absent_names)
         self.__sbar = Scrollbar(f)
         self.__sbar.config(command = self.__listbox.yview)
