@@ -101,7 +101,11 @@ This file is called `cli.json`, with a template given below:
     "defhost": "127.0.0.1",
     "buffsize": 2048,
     "defmachine": "BJ303",
-    "timeout": 10
+    "timeout": 10,
+    "yearbook": {
+      "sp": "spirit",
+      "dp": "deophius"
+    }
 }
 ```
 
@@ -111,21 +115,39 @@ This file is called `cli.json`, with a template given below:
   This shouldn't be too small (<1024) and would preferentially be a power of 2.
 * defmachine: The default machine ID in the GUI.
 * timeout: Timeout before the GUI decides that the server is not responding.
+* yearbook: An *optional* object holding the abbreviation mapping used by the quick find box.
+  For example, if the config looks exactly like the one shown above, you can type `sp` in the
+  quick find box and press enter. If the name `spirit` is in the list of absent people, it will
+  automatically be selected. *This object is optional!* If not present, the quick find function
+  will be disabled.
 
-## Keyboard accelerators in the GUI
+## Operating the GUI with keyboard only
 
 ### First page (machine info)
 
-Press `enter` to submit the machine name and host ip info.
+Press `enter` to submit the machine name and host IP info.
+If you want to use a non-default machine IP or machine name, you can press
+`tab` to switch to different input boxes.
 
 ### Second page (LessonPicker)
 
-* For the first 9 lessons that appear on the list, you can press 1-9 to
-choose them, respectively.
-* Press `enter` should have the same effect has pressing the OK button.
+* For the first 9 lessons that appear on the list, you can press `1` to `9` to
+choose them. `1` is for the one on the top of the list.
+* Press `enter` should have the same effect as pressing the OK button.
 * Press `p` to trigger "pause watchdog".
 * Press `r` to trigger "resume watchdog".
 * Press `g` to trigger "get latest news".
+
+### Third page (Reporter)
+
+* To quickly search through the list of absent people, use the quickfind input box.
+  The box grabs the focus on default, so this is completely keyboard friendly.
+
+  You need to specify the abbreviation mapping in the config file. See the `cli.json`
+  section for details.
+
+* Different from the previous page, if you want to trigger the buttons with your keyboard,
+  you need to use a alt key combination. See the in-program hints.
 
 ## Our singin protocol
 

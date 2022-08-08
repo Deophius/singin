@@ -123,6 +123,8 @@ class LessonPicker(Frame):
             return
         # Not -1, something meaningful
         self.sessid = self.__var.get()
+        for i in 'p r g <Return>'.split():
+            self.unbind_all(i)
         self.destroy()
         self.quit()
 
@@ -190,13 +192,25 @@ class Reporter(Frame):
         self.__listbox.config(yscrollcommand = self.__sbar.set)
         self.__sbar.pack(side = RIGHT, fill = Y)
         self.__listbox.pack(side = TOP, expand = True, fill = BOTH)
-        f.pack(side = TOP)
+        if 'yearbook' in config:
+            Label(f, text = "Quick find:", font = 'Consolas').pack(side = LEFT)
+            self.__quickfind = Entry(f, font = 'Consolas')
+            self.__quickfind.bind('<Return>', lambda e: self.__find_abbrev())
+            self.__quickfind.focus()
+            self.__quickfind.pack(side = LEFT)
+        f.pack()
+        # Open a new frame for better layout
         g = Frame(self)
-        Button(g, text = 'OK', command = self.__write, font = 'Consolas').pack(side = LEFT)
-        Label(g, text = '        ').pack(side = LEFT)
-        Button(g, text = 'Refresh', command = self.__refresh, font = 'Consolas').pack(side = LEFT)
-        g.pack(side = TOP)
-        Button(self, text = 'Restart GS and quit', command = self.__restart, font = "Consolas").pack(anchor = N)
+        ok_button = Button(g, text = 'Write (Alt-W)', command = self.__write, font = 'Consolas')
+        ok_button.bind_all('<Alt-w>', lambda event: self.__write())
+        ok_button.pack()
+        refresh_button = Button(g, text = 'Refresh (Alt-R)', command = self.__refresh, font = 'Consolas')
+        refresh_button.bind_all('<Alt-r>', lambda event: self.__refresh())
+        refresh_button.pack()
+        restart_button = Button(g, text = 'Restart GS & quit (Alt-Q)', command = self.__restart, font = "Consolas")
+        restart_button.bind_all('<Alt-q>', lambda e: self.__restart())
+        restart_button.pack()
+        g.pack()
 
     def __write(self):
         ''' Underlying writer.'''
@@ -243,3 +257,25 @@ class Reporter(Frame):
         else:
             self.destroy()
             self.quit()
+
+    def __find_abbrev(self):
+        ''' Finds the initials in self.__quick_find and selects it.
+        If not found, sets the top label to an error msg.
+        '''
+        abbrev = self.__quickfind.get()
+        self.__quickfind.delete(0, END)
+        # Defensive programming.
+        assert type(self.__absent_names) == list
+        # We have already checked in showdata() that the config is there.
+        # Just assume that it was written correctly.
+        if abbrev not in config['yearbook']:
+            self.__label.configure(text = 'Abbrev not in config!')
+            return
+        try:
+            index = self.__absent_names.index(config['yearbook'][abbrev])
+        except ValueError:
+            self.__label.configure(text = 'Not in absent list')
+            return
+        self.__listbox.selection_set(index)
+        self.__listbox.yview_moveto(index / len(self.__absent_names))
+        self.__label.configure(text = f'Selected {abbrev}')
