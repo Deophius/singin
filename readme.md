@@ -14,6 +14,7 @@ That's because it was wrong when the target program was developed.
 ## Requirements on the client side
 
 1. Python 3.8 or 3.10, it might work on other versions, but it's not tested.
+2. Python's Tkinter support (some installations don't come with one).
 
 ## Requirements on the server side
 

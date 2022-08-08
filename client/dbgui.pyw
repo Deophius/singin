@@ -3,7 +3,7 @@ import sys
 from tkinter import *
 
 if __name__ == '__main__':
-    Tk().title('我找不到钟小平')
+    Tk().title('Spirit GUI')
     asker = IPAsker()
     asker.mainloop()
     # if the machine data is still None, then the exit was an accident.
@@ -18,7 +18,6 @@ if __name__ == '__main__':
     if picker.sessid is None:
         sys.exit(0)
     # Now sessid contains the data user chose.
-    print(picker.sessid)
     sessid = picker.sessid
     del picker
     reporter = Reporter(host, sessid)

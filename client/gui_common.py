@@ -152,7 +152,6 @@ class Reporter(Frame):
         self.__getdata()
         # If reached here, user had retried until there is a good response
         assert type(self.__absent_names) == list
-        print(len(self.__absent_names))
         self.__showdata()
 
     def __getdata(self):
@@ -202,7 +201,6 @@ class Reporter(Frame):
     def __write(self):
         ''' Underlying writer.'''
         from tkinter.messagebox import showerror, showinfo
-        print(self.__listbox.curselection())
         try:
             dbclient.write_record(
                 self.__sessid,
@@ -239,7 +237,6 @@ class Reporter(Frame):
         try:
             dbclient.restart_gs(self.__host)
         except dbclient.RequestFailed as ex:
-            print(ex.args)
             showerror('Request failed', str(ex.args[1]) + '\nPlease try again.')
         except BaseException as ex:
             showerror('Unknown error', str(type(ex)) + '\n' + str(ex.args))
