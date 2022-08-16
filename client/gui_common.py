@@ -269,12 +269,12 @@ class Reporter(Frame):
         # We have already checked in showdata() that the config is there.
         # Just assume that it was written correctly.
         if abbrev not in config['yearbook']:
-            self.__label.configure(text = 'Abbrev not in config!')
+            self.__label.configure(text = f'{abbrev} not in config!')
             return
         try:
             index = self.__absent_names.index(config['yearbook'][abbrev])
         except ValueError:
-            self.__label.configure(text = 'Not in absent list')
+            self.__label.configure(text = f'{abbrev} not in absent list')
             return
         self.__listbox.selection_set(index)
         self.__listbox.yview_moveto(index / len(self.__absent_names))
