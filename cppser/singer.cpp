@@ -1,9 +1,7 @@
 // Implementation for Singer class's mainloop()
 #include <boost/asio.hpp>
 #include "singd.h"
-
-namespace {
-}
+#include <cstdlib>
 
 namespace Spirit {
     using nlohmann::json;
@@ -20,7 +18,11 @@ namespace Spirit {
         logfile << mConfig["intro"].get<std::string>() << '\n';
         asio::io_context ioc;
         udp::socket serv_sock(ioc, udp::endpoint(udp::v4(), mConfig["serv_port"]));
+        logfile << "Created socket, bound to " << mConfig["serv_port"] << '\n';
         mLocalData.reset(new Connection(mConfig["dbname"], mConfig["passwd"]));
+        logfile << "Opened local data, singer's instance\n";
+        ::system("taskkill /im LockMouse.exe /f > NUL 2> NUL");
+        logfile << "Terminated lock mouse\n";
         logfile.flush();
         while (true) {
             udp::endpoint client;
