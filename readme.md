@@ -149,6 +149,14 @@ choose them. `1` is for the one on the top of the list.
 * Different from the previous page, if you want to trigger the buttons with your keyboard,
   you need to use a alt key combination. See the in-program hints.
 
+### Special: using colors
+
+We currently use green, orange and red to indicate the status of our program.
+
+* Green means that the last operation was successful.
+* Orange means that a lengthy operation, usually a request to the server, is being performed.
+* Red means that the last operation resulted in an error.
+
 ## Our singin protocol
 
 This is a simple, stateless, UDP-based protocol that uses JSON as the "mime type".
