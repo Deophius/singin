@@ -13,7 +13,7 @@ namespace Spirit {
     void Singer::mainloop(Watchdog& watchdog) {
         namespace asio = boost::asio;
         using asio::ip::udp;
-        Logfile logfile("singer.log");
+        Logfile logfile("singer.log", std::ios::app | std::ios::out);
         // If intro or serv_port are missing, no need to go on.
         logfile << mConfig["intro"].get<std::string>() << '\n';
         asio::io_context ioc;
@@ -21,8 +21,6 @@ namespace Spirit {
         logfile << "Created socket, bound to " << mConfig["serv_port"] << '\n';
         mLocalData.reset(new Connection(mConfig["dbname"], mConfig["passwd"]));
         logfile << "Opened local data, singer's instance\n";
-        ::system("taskkill /im LockMouse.exe /f > NUL 2> NUL");
-        logfile << "Terminated lock mouse\n";
         logfile.flush();
         while (true) {
             udp::endpoint client;

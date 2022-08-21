@@ -9,7 +9,7 @@ namespace Spirit {
 	public:
 		// Constructs a log file named filename
 		// It will be truncated and opened.
-		explicit Logfile(const std::string& name);
+		explicit Logfile(const std::string& name, std::ios::openmode mode = std::ios::out);
 
 		template <typename T>
 		friend std::ofstream& operator << (Logfile& file, const T& t);

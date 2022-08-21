@@ -1,7 +1,7 @@
 #include "logger.h"
 
 namespace Spirit {
-	Logfile::Logfile(const std::string& file) : mFile(file, std::ios::out)
+	Logfile::Logfile(const std::string& file, std::ios::openmode mode) : mFile(file, mode)
 	{}
 
 	void Logfile::flush() {
