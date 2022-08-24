@@ -3,12 +3,13 @@
 #include <fstream>
 #include <ctime>
 #include <string>
+#include <filesystem>
 
 namespace Spirit {
 	class Logfile {
 	public:
 		// Constructs a log file named filename
-		// It will be truncated and opened.
+		// The openmode can be manually chosen.
 		explicit Logfile(const std::string& name, std::ios::openmode mode = std::ios::out);
 
 		template <typename T>
@@ -65,6 +66,19 @@ namespace Spirit {
 		// Non-owning pointer to the logfile
 		Logfile* mFile;
 	};
+
+	// Chooses the logfile with the least recently written log file.
+	// The log files' names have the format <base><num>.log.
+	// lognum is the number of log files to maintain.
+	// If some log files are not present, creates them on the fly.
+	//
+	// For example, if there are a1.log (12:45), a2.log (8:43),
+	// and the user calls select_logfile("a", 4) at 15:00,
+	// a3.log and a4.log will be created. Because they're freshly created
+	// we will return a2.log.
+	//
+	// Throws std::logic_error if lognum is 0.
+	std::string select_logfile(const std::string& base, std::size_t lognum);
 }
 
 #endif
