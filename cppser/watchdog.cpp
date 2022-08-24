@@ -98,7 +98,15 @@ namespace Spirit {
                 // Flush every loop.
                 LogSection log_section(log);
                 // Lessons that are nearing an end.
-                auto near_ending = near_exits(local_data);
+                std::vector<LessonInfo> near_ending;
+                try {
+                    near_ending = near_exits(local_data);
+                } catch (const SQLError& ex) {
+                    log << "Encountering SQL error when calling near_exits()\n"
+                        << "SQLError: " << ex.what() << '\n';
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["retry_wait"]));
+                    continue;
+                }
                 if (near_ending.empty() || near_ending.front().endtime == last_proc) {
                     // Nothing to do, or already processed.
                     std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));
