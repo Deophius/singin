@@ -77,7 +77,8 @@ The file is named `man.json`. A template looks like this:
     "url_stu_new": "http://127.0.0.1//Services/SmartBoard/SmartBoardLoadSingInStudentNew/json",
     "intro": "Spirit version 3.1 is up!",
     "watchdog_poll": 15,
-    "retry_wait": 3
+    "retry_wait": 3,
+    "keep_logs": 3
 }
 ```
 
@@ -90,6 +91,7 @@ The file is named `man.json`. A template looks like this:
 * watchdog_poll: The seconds watchdog waits before checking for lessons, quit, etc.
 * retry_wait: If the previous attempt to auto sign in failed because of network error, wait for
   `retry_wait` seconds before retrying.
+* keep_logs: The number of logs to keep before rotating over to an older one.
 
 ## Client configuration file
 

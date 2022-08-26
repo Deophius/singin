@@ -65,7 +65,7 @@ namespace Spirit {
         // First, create a log file and report our existence.
         // Maybe std::endl will force the streams to flush, making the log up to date.
         // The performance overhead is negligible compared to 15 second polls.
-        Logfile log("watchdog.log");
+        Logfile log(select_logfile("watchdog", mConfig["keep_logs"]));
         log << "Watchdog launched." << std::endl;
         // Then read the config db for localdata's name and password
         std::string dbname, passwd;

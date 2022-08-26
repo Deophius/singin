@@ -75,7 +75,7 @@ namespace Spirit {
         // As in the design, this daemon will occupy the "main thread", so
         // its function is called mainloop. Returns after receiving a quit
         // command
-        void mainloop(Watchdog& watchdog);
+        void mainloop(Watchdog& watchdog, Logfile& logfile);
     private:
         // Ref to the configuration var.
         const Spirit::Configuration& mConfig;

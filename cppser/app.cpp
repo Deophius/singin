@@ -38,6 +38,10 @@ namespace Spirit {
                 error_dialog("Type error", entry + " should be an int!"s);
                 return false;
             }
+            if (config[entry] <= 0) {
+                error_dialog("Value error", entry + " should be positive!"s);
+                return false;
+            }
             return true;
         };
         auto check_str = [&config](const char* entry) {
@@ -53,7 +57,8 @@ namespace Spirit {
         };
         return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
             && check_str("dbname") && check_str("passwd") && check_str("intro")
-            && check_int("watchdog_poll") && check_int("retry_wait") && check_db(config);
+            && check_int("watchdog_poll") && check_int("retry_wait") && check_int("keep_logs")
+            && check_db(config);
     }
 
     void error_dialog(std::string_view caption, std::string_view text) {
@@ -86,7 +91,7 @@ int main() {
     {
         // Put these into a new scope to ensure the log will be closed when entering singer
         // First override the old contents here. The singer will open a new config.
-        Logfile logfile("singer.log");
+        Logfile logfile("startup.log");
         logfile << "About to kill the lock mouse" << std::endl;
         kill_lock_mouse();
         logfile << "Called kill_lock_mouse, last error was " << ::GetLastError() << std::endl;
@@ -110,8 +115,12 @@ int main() {
             return 1;
         }
     }
+    // Now we can be absolutely sure that keep_logs exist and is larger than 0.
+    auto logname = select_logfile("singer", config["keep_logs"]);
+    std::filesystem::rename("startup.log", logname);
+    Logfile logfile(logname, std::ios::out | std::ios::app);
     Watchdog watchdog(config);
     Singer singer(config);
     watchdog.start();
-    singer.mainloop(watchdog);
+    singer.mainloop(watchdog, logfile);
 }

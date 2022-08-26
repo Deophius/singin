@@ -10,10 +10,9 @@ namespace Spirit {
         mConfig(config)
     {}
 
-    void Singer::mainloop(Watchdog& watchdog) {
+    void Singer::mainloop(Watchdog& watchdog, Logfile& logfile) {
         namespace asio = boost::asio;
         using asio::ip::udp;
-        Logfile logfile("singer.log", std::ios::app | std::ios::out);
         // If intro or serv_port are missing, no need to go on.
         logfile << mConfig["intro"].get<std::string>() << '\n';
         asio::io_context ioc;

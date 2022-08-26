@@ -31,7 +31,7 @@ namespace Spirit {
 		if (lognum == 0)
 			throw std::logic_error("Lognum should be greater than zero!");
 		std::string ans = base + "0.log";
-		for (std::size_t i = 0; i <= lognum; i++) {
+		for (std::size_t i = 0; i < lognum; i++) {
 			std::string currfile = base + std::to_string(i) + ".log";
 			if (!stdfs::exists(currfile)) {
 				// This file does not exist, it is indeed new enough.
