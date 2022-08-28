@@ -89,17 +89,17 @@ namespace Spirit {
         // For the structure of the request and responses, see dbserv/dbman.pyw.
         
         // sessid starts from 0
-        nlohmann::json handle_rep_abs(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_rep_abs(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_today(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_today(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log) noexcept;
         
-        nlohmann::json handle_doggie(const nlohmann::json& request, Logfile& log, Watchdog& watchdog);
+        nlohmann::json handle_doggie(const nlohmann::json& request, Logfile& log, Watchdog& watchdog) noexcept;
     };
 
     // Pull out the helper functions to facilitate testing.

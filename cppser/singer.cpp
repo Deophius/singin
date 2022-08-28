@@ -81,7 +81,7 @@ namespace Spirit {
         }
     }
 
-    json Singer::handle_rep_abs(const json& request, Logfile& log) {
+    json Singer::handle_rep_abs(const json& request, Logfile& log) noexcept {
         json ans;
         try {
             const auto lessons = get_lesson(*mLocalData);
@@ -106,7 +106,7 @@ namespace Spirit {
         return ans;
     }
 
-    json Singer::handle_wrt_rec(const json& request, Logfile& log) {
+    json Singer::handle_wrt_rec(const json& request, Logfile& log) noexcept {
         const auto lessons = get_lesson(*mLocalData);
         json ans;
         ans["success"] = false;
@@ -128,7 +128,7 @@ namespace Spirit {
         return ans;
     }
 
-    json Singer::handle_today(const json& request, Logfile& log) {
+    json Singer::handle_today(const json& request, Logfile& log) noexcept {
         json ans;
         ans["success"] = false;
         try {
@@ -154,7 +154,7 @@ namespace Spirit {
         return ans;
     }
 
-    json Singer::handle_restart(const json& request, Logfile& log) {
+    json Singer::handle_restart(const json& request, Logfile& log) noexcept {
         try {
             send_to_gs(mConfig, log, "$DoRestart");
             return json({{ "success", true }});
@@ -165,7 +165,7 @@ namespace Spirit {
         }
     }
 
-    json Singer::handle_notice(const json& request, Logfile& log) {
+    json Singer::handle_notice(const json& request, Logfile& log) noexcept {
         try {
             send_to_gs(mConfig, log, "$DoMediaTask");
             return {{ "success", true }};
@@ -176,7 +176,7 @@ namespace Spirit {
         }
     }
 
-    json Singer::handle_doggie(const json& request, Logfile& log, Watchdog& watchdog) {
+    json Singer::handle_doggie(const json& request, Logfile& log, Watchdog& watchdog) noexcept {
         json ans;
         try {
             const bool pause = request.at("pause");
