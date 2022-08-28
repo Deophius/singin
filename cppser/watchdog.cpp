@@ -56,7 +56,16 @@ namespace Spirit {
             return;
         // If we restart here, we can take advantage of the restarting time,
         // to avoid collision.
-        send_to_gs(mConfig, logfile, "$DoRestart");
+        // Because both exceptions can be fallen through without affecting the other code,
+        // so we handle them in this function instead of propagating them upward.
+        try {
+            send_to_gs(mConfig, logfile, "$DoRestart");
+        } catch (const NetworkError& ex) {
+            logfile << "Networking error when restarting GS: " << ex.what() << '\n';
+        } catch (const GSError& ex) {
+            logfile << "GS internal error when we asked it to restart, quite strange! Output:\n"
+                << ex.what() << '\n';
+        }
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
     }

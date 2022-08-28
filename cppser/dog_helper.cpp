@@ -1,6 +1,8 @@
 #include "singd.h"
+#include <array>
+#include <algorithm>
 #include <boost/asio.hpp>
-#include <exception>
+#include <iterator>
 #include <memory>
 #include <regex>
 
@@ -142,19 +144,53 @@ namespace Spirit {
             throw NetworkError("execute_request timed out.");
     }
 
-    void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg) {
+    static void send_to_gs_impl(int gs_port, std::string msg, std::shared_ptr<std::promise<std::string>> prom) {
         namespace asio = boost::asio;
         asio::io_context ioc;
         asio::ip::udp::socket socket(ioc);
         socket.open(asio::ip::udp::v4());
-        asio::ip::udp::endpoint addr(
-            asio::ip::address::from_string("127.0.0.1"), config["gs_port"].get<int>()
-        );
+        asio::ip::udp::endpoint addr(asio::ip::address::from_string("127.0.0.1"), gs_port);
+        std::exception_ptr exptr;
         try {
-            socket.send_to(asio::buffer(msg), addr);
+            socket.send_to(asio::buffer(std::move(msg)), addr);
+            std::array<char, 128> buff;
+            asio::ip::udp::endpoint endpoint;
+            auto n = socket.receive_from(asio::buffer(buff), endpoint);
+            prom->set_value(std::string(buff.begin(), n));
+            return;
         } catch (const boost::system::system_error& ex) {
-            log << ex.what() << '\n';
-            throw ex;
+            try {
+                if (ex.code().value() == asio::error::connection_reset)
+                    throw NetworkError("Connection was reset, maybe GS not up?");
+                else
+                    throw NetworkError("Network error " + std::to_string(ex.code().value()));
+            } catch (const NetworkError& ex2) {
+                // Set it to the promise
+                try {
+                    prom->set_exception(std::current_exception());
+                } catch (...) {
+                    // Nothing to do.
+                }
+            }
         }
+    }
+
+    void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg) {
+        log << "Sending message to GS: " << msg << '\n';
+        using Promise = std::promise<std::string>;
+        std::shared_ptr<Promise> prom(new Promise());
+        auto fut = prom->get_future();
+        // Launch the detached thread
+        std::thread(&send_to_gs_impl, config["gs_port"].get<int>(), msg, prom).detach();
+        auto stat = fut.wait_for(std::chrono::seconds(2));
+        if (stat == std::future_status::ready) {
+            // This line might throw NetworkError
+            std::string_view line = std::move(fut.get());
+            if (line.substr(0, 7) != "success")
+                throw GSError(line.data());
+            // Success, return
+            return;
+        } else
+            throw NetworkError("Sending to GS timed out");
     }
 }

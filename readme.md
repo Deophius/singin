@@ -202,7 +202,9 @@ Because we use JSON as the "mime type", the name strings should be UTF-8 encoded
   -> {"success": false, "what": "error description"}
 ```
 
-Restarts GS. On the current implementation, this will always succeed.
+Restarts GS. If the GS machine is not up, we will inform you in the what string.
+If GS doesn't recognize our command, you will also be notified. In this case, maybe it's up
+to you to figure out the new command string to use.
 
 ### today_info
 
@@ -234,12 +236,14 @@ is kind of difficult.
 ```json
 {"command": "flush_notice"}
    -> {"success": true}
+   -> {"success": false, "what": "error description"}
 ```
 
 Using GS's port, we can inform it to get the latest notice immediately. This might be useful if
 too much network analysis breaks the network interface configuration and you cannot receive
-notifications at all. Because of the implementation, we cannot tell whether the command really took
-effect. We can only guarantee that a datagram will be sent.
+notifications at all.
+
+For the error scenarios, see `restart_gs`.
 
 ### doggie_stick
 

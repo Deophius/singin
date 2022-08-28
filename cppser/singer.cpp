@@ -155,13 +155,25 @@ namespace Spirit {
     }
 
     json Singer::handle_restart(const json& request, Logfile& log) {
-        send_to_gs(mConfig, log, "$DoRestart");
-        return json({{ "success", true }});
+        try {
+            send_to_gs(mConfig, log, "$DoRestart");
+            return json({{ "success", true }});
+        } catch (const NetworkError& ex) {
+            return json({{ "success", false }, { "what", ex.what() }});
+        } catch (const GSError&) {
+            return json({{ "success", false }, { "what", "GS internal error, see logs." }});
+        }
     }
 
     json Singer::handle_notice(const json& request, Logfile& log) {
-        send_to_gs(mConfig, log, "$DoMediaTask");
-        return {{ "success", true }};
+        try {
+            send_to_gs(mConfig, log, "$DoMediaTask");
+            return {{ "success", true }};
+        } catch (const NetworkError& ex) {
+            return json({{ "success", false }, { "what", ex.what() }});
+        } catch (const GSError&) {
+            return json({{ "success", false }, { "what", "GS internal error, see logs." }});
+        }
     }
 
     json Singer::handle_doggie(const json& request, Logfile& log, Watchdog& watchdog) {

@@ -111,6 +111,11 @@ namespace Spirit {
         using std::runtime_error::runtime_error;
     };
 
+    // Error class for GS errors
+    struct GSError : public std::runtime_error {
+        using std::runtime_error::runtime_error;
+    };
+
     // This function parses the data in the config. The ref parameters are output.
     // Throws logic_error if the URL is empty or doesn't contain a host name like 127.0.0.1
     void parse_url(const Configuration& config, std::string& host, std::string& url);
@@ -145,9 +150,10 @@ namespace Spirit {
     );
 
     // This function sends a message to the GS port.
-    // Exception: NetworkError if errors related to socket occurs.
-    // However, because this function connects to localhost, even if the port specified
-    // has no sockets bound, there won't be an exception.
+    // Exception: NetworkError if errors related to socket occurs. For example, if GS
+    // isn't up to receive our command.
+    // GSError if the GS program says that the command has some problems with it.
+    // The what string of GSError will be exactly what it returned in the socket.
     void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg);
 }
 
