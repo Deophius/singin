@@ -57,8 +57,7 @@ namespace Spirit {
         };
         return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
             && check_str("dbname") && check_str("passwd") && check_str("intro")
-            && check_int("watchdog_poll") && check_int("retry_wait") && check_int("keep_logs")
-            && check_db(config);
+            && check_int("watchdog_poll") && check_int("retry_wait") && check_int("keep_logs");
     }
 
     void error_dialog(std::string_view caption, std::string_view text) {
@@ -77,10 +76,10 @@ namespace Spirit {
             CREATE_NO_WINDOW, NULL, NULL, &start, &proc_info
         );
         // Wait until child process exits.
-        WaitForSingleObject(proc_info.hProcess, INFINITE);
+        ::WaitForSingleObject(proc_info.hProcess, INFINITE);
         // Close process and thread handles. 
-        CloseHandle(proc_info.hProcess);
-        CloseHandle(proc_info.hThread);
+        ::CloseHandle(proc_info.hProcess);
+        ::CloseHandle(proc_info.hThread);
     }
 }
 
@@ -114,6 +113,8 @@ int main() {
             logfile << "Config error: didn't pass the validator test\n";
             return 1;
         }
+        if (!check_db(config))
+            logfile << "Warning: database is corrupt!\n";
     }
     // Now we can be absolutely sure that keep_logs exist and is larger than 0.
     auto logname = select_logfile("singer", config["keep_logs"]);
