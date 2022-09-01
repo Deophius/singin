@@ -2,6 +2,7 @@
 # Separating them from dbgui.pyw is because a py extension allows imports.
 from tkinter import *
 import dbclient, sys
+from tkinter.messagebox import *
 
 __all__ = 'IPAsker LessonPicker Reporter'.split()
 
@@ -9,7 +10,6 @@ try:
     import json
     config = json.load(open('cli.json', encoding = 'utf-8'))
 except FileNotFoundError:
-    from tkinter.messagebox import showerror
     showerror('No config', 'Please add configuration file cli.json')
     sys.exit(1)
 
@@ -36,7 +36,7 @@ class IPAsker(Frame):
         self.entry.focus()
         self.entry.bind('<Return>', lambda event: self.callback())
         f2 = Frame(self)
-        self.label2 = Label(self, text = 'No machine data yet', font = 'Consolas')
+        self.label2 = Label(self, text = 'No machine data yet', font = 'Consolas', foreground = 'green')
         self.br = Entry(f2, font = 'Consolas')
         self.br.insert(0, config['defhost'])
         self.br.bind('<Return>', lambda e: self.callback())
@@ -50,9 +50,8 @@ class IPAsker(Frame):
         self.label2.pack(side = TOP)
 
     def callback(self):
-        from tkinter.messagebox import showerror
         try:
-            self.label2.config(text = 'Pending reply...')
+            self.label2.config(text = 'Pending reply...', foreground = 'orange')
             self.label2.update()
             self.host = self.br.get()
             self.machine_data = dbclient.get_machine_data(self.entry.get(), self.host)
@@ -65,7 +64,7 @@ class IPAsker(Frame):
         except dbclient.RequestFailed as ex:
             showerror('Request failed', ex.args[1])
         # No matter what failure it is, this line will be executed.
-        self.label2.config(text = 'None machine data yet')
+        self.label2.config(text = 'None machine data yet', foreground = 'red')
         self.label2.update()
 
 class LessonPicker(Frame):
@@ -87,7 +86,8 @@ class LessonPicker(Frame):
         self.__make_widgets(lessons)
 
     def __make_widgets(self, lessons):
-        Label(self, text = "Please choose a lesson", font = 'Consolas').pack(side = TOP)
+        self.__label = Label(self, text = "Please choose a lesson", font = 'Consolas', foreground = 'green')
+        self.__label.pack(side = TOP)
         self.__var = IntVar()
         # This is actually a bunch of radio buttons
         for num, lesson in enumerate(lessons):
@@ -105,7 +105,7 @@ class LessonPicker(Frame):
         ok_button = Button(self, text = 'OK', command = self.__onlesson, font = "Consolas")
         ok_button.bind_all('<Return>', lambda event: self.__onlesson())
         ok_button.pack(side = TOP)
-        Label(self, text = "\nMisc operations:", font = "Consolas").pack(side = TOP)
+        Label(self, text = "\nMisc operations:", font = "Consolas", foreground = 'green').pack(side = TOP)
         pause_button = Button(self, text = "Pause watchdog", command = self.__on_pause_dog, font = "Consolas")
         pause_button.bind_all('p', lambda event: self.__on_pause_dog())
         pause_button.pack()
@@ -117,9 +117,9 @@ class LessonPicker(Frame):
         news_button.pack()
 
     def __onlesson(self):
-        from tkinter.messagebox import showwarning
         if self.__var.get() == -1:
             showwarning('Warning', 'You have to select a lesson!')
+            self.__label.configure(foreground = 'red', text = 'Please choose a lesson')
             return
         # Not -1, something meaningful
         self.sessid = self.__var.get()
@@ -129,13 +129,28 @@ class LessonPicker(Frame):
         self.quit()
 
     def __on_pause_dog(self):
-        dbclient.doggie_stick(self.__host, True)
+        try:
+            dbclient.doggie_stick(self.__host, True)
+            self.__label.configure(text = "Paused watchdog", foreground = 'green')
+        except dbclient.RequestFailed as ex:
+            self.__label.configure(text = "Fail to pause dog", foreground = 'red')
+            showerror('Request failed', ex.args[1])
 
     def __on_resume_dog(self):
-        dbclient.doggie_stick(self.__host, False)
+        try:
+            dbclient.doggie_stick(self.__host, False)
+            self.__label.configure(text = "Resumed watchdog", foreground = 'green')
+        except dbclient.RequestFailed as ex:
+            self.__label.configure("Failed to resume watchdog", foreground = 'red')
+            showerror('Request failed', ex.args[1])
 
     def __on_flush_notice(self):
-        dbclient.flush_notice(self.__host)
+        try:
+            dbclient.flush_notice(self.__host)
+            self.__label.configure(text = 'Flushed notice!', foreground = 'green')
+        except dbclient.RequestFailed as ex:
+            self.__label.configure(text = 'Failed to flush notice', foreground = 'red')
+            showerror('Request failed', ex.args[1])
 
 class Reporter(Frame):
     ''' Report absent and ask who will sign in. Return value in self.signin_names,
@@ -158,8 +173,7 @@ class Reporter(Frame):
 
     def __getdata(self):
         ''' Gets data. Stores list of absent people in self.__absent_names '''
-        from tkinter.messagebox import askretrycancel, showerror
-        self.__label.config(text = 'Please wait a sec...')
+        self.__label.config(text = 'Please wait a sec...', foreground = 'orange')
         self.update()
         # User reply for retry, defaults to False, so when nothing special occurs,
         # doesn't retry by default
@@ -179,11 +193,10 @@ class Reporter(Frame):
             sys.exit(0)
 
     def __showdata(self):
-        from tkinter.messagebox import showinfo
         if len(self.__absent_names) == 0:
             showinfo('Good job!', 'Everybody has signed in! I might as well go back to sleep!')
             sys.exit(0)
-        self.__label.config(text = 'These people didn\'t DK:')
+        self.__label.config(text = 'These people didn\'t DK:', foreground = 'green')
         f = Frame(self)
         self.__listbox = Listbox(f, selectmode = EXTENDED, font = ('YaHei', 20))
         self.__listbox.insert(END, *self.__absent_names)
@@ -214,7 +227,7 @@ class Reporter(Frame):
 
     def __write(self):
         ''' Underlying writer.'''
-        from tkinter.messagebox import showerror, showinfo
+        self.__label.config(text = 'Sending write request to server', foreground = 'orange')
         try:
             dbclient.write_record(
                 self.__sessid,
@@ -223,29 +236,31 @@ class Reporter(Frame):
             )
         except dbclient.RequestFailed as ex:
             showerror('Request failed', ex.args[1] + '\nPlease try again.')
+            self.__label.config(foreground='red')
         except BaseException as ex:
             showerror('Unknown error', str(type(ex)) + '\n' + str(ex.args))
+            self.__label.config(foreground='red')
+        else:
+            self.__label.config(foreground = 'green')
         self.__getdata()
         if len(self.__absent_names) == 0:
             showinfo('Good job!', 'Everybody has signed in! I might as well go back to sleep!')
             sys.exit(0)
         self.__listbox.delete(0, END)
         self.__listbox.insert(END, *self.__absent_names)
-        self.__label.config(text = 'Last call OK! Choose more:')
+        self.__label.config(text = 'Choose more:')
 
     def __refresh(self):
-        from tkinter.messagebox import showinfo
         self.__getdata()
         if len(self.__absent_names) == 0:
             showinfo('Good job!', 'Everybody has signed in! I might as well go back to sleep!')
             sys.exit(0)
         self.__listbox.delete(0, END)
         self.__listbox.insert(END, *self.__absent_names)
-        self.__label.config(text = 'Refreshed! Choose more:')
+        self.__label.config(text = 'Refreshed! Choose more:', foreground = 'green')
 
     def __restart(self):
         ''' Does the communication and restarts GS terminal. '''
-        from tkinter.messagebox import showerror, askyesnocancel
         if not askyesnocancel('Restart?', 'Really restart terminal?'):
             return
         try:
@@ -257,6 +272,7 @@ class Reporter(Frame):
         else:
             self.destroy()
             self.quit()
+        self.__label.config(text = 'Restart failed', foreground = 'red')
 
     def __find_abbrev(self):
         ''' Finds the initials in self.__quick_find and selects it.
@@ -269,13 +285,13 @@ class Reporter(Frame):
         # We have already checked in showdata() that the config is there.
         # Just assume that it was written correctly.
         if abbrev not in config['yearbook']:
-            self.__label.configure(text = 'Abbrev not in config!')
+            self.__label.configure(text = f'{abbrev} not in config!', foreground = 'red')
             return
         try:
             index = self.__absent_names.index(config['yearbook'][abbrev])
         except ValueError:
-            self.__label.configure(text = 'Not in absent list')
+            self.__label.configure(text = f'{abbrev} not in absent list', foreground = 'red')
             return
         self.__listbox.selection_set(index)
         self.__listbox.yview_moveto(index / len(self.__absent_names))
-        self.__label.configure(text = f'Selected {abbrev}')
+        self.__label.configure(text = f'Selected {abbrev}', foreground = 'green')

@@ -25,22 +25,23 @@ That's because it was wrong when the target program was developed.
 
 ## Required tools and libraries for building
 
-1. The tested compiler is MinGW-w64/GCC 8.2.0, with mingw32-make.
+1. The tested compiler is MinGW-w64/GCC 8.2.0 and 12.1.0, with mingw32-make.
 2. CMake version 3.23.2
 3. This project uses library
    [Better SQLite3 Multiple Cipher](https://github.com/utelle/SQLite3MultipleCiphers).
    Tested version is v1.4.8.
 4. [Nlohmann JSON](https://github.com/nlohmann/json), version 3.10.5
 5. The icon for the executable was provided by [Aha soft](http://www.aha-soft.com/).
-6. [Boost C++ libraries](https://boost.org), version 1.79.0.
+6. [Boost C++ libraries](https://boost.org), version 1.80.0.
 
 Thanks for all the tools, libraries and resources the community provides so generously!
 
 ## Procedure for building and deploying our project
 
-1. On the build machine, download and unzip or clone the source code into a directory.
+1. On the build machine, clone the source code into a directory.
 2. Check and double check that your client can access the server.
-3. Make sure that your editor supports UTF-8.
+3. Make sure that your editor supports UTF-8. Specifically, avoid using `notepad` to edit
+   files because it might introduce strange BOMs, breaking the config file.
 4. On a terminal, `cd` into that directory.
 5. Create a `include/` directory containing headers of the external library. Place SQL headers
    in `include/` and JSON headers in `include/nlohmann`. Kindly put `sqlite3mc_x64.dll` in
@@ -77,7 +78,8 @@ The file is named `man.json`. A template looks like this:
     "url_stu_new": "http://127.0.0.1//Services/SmartBoard/SmartBoardLoadSingInStudentNew/json",
     "intro": "Spirit version 3.1 is up!",
     "watchdog_poll": 15,
-    "retry_wait": 3
+    "retry_wait": 3,
+    "keep_logs": 3
 }
 ```
 
@@ -88,8 +90,9 @@ The file is named `man.json`. A template looks like this:
 * url_stu_new: The URL to post for student info.
 * intro: The first line to appear in singer.log, customizable.
 * watchdog_poll: The seconds watchdog waits before checking for lessons, quit, etc.
-* retry_wait: If the previous attempt to auto sign in failed because of network error, wait for
-  `retry_wait` seconds before retrying.
+* retry_wait: If the previous attempt to auto sign in failed because of network or database error,
+  wait for `retry_wait` seconds before retrying.
+* keep_logs: The number of logs to keep before rotating over to an older one.
 
 ## Client configuration file
 
@@ -149,6 +152,14 @@ choose them. `1` is for the one on the top of the list.
 * Different from the previous page, if you want to trigger the buttons with your keyboard,
   you need to use a alt key combination. See the in-program hints.
 
+### Special: using colors
+
+We currently use green, orange and red to indicate the status of our program.
+
+* Green means that the last operation was successful.
+* Orange means that a lengthy operation, usually a request to the server, is being performed.
+* Red means that the last operation resulted in an error.
+
 ## Our singin protocol
 
 This is a simple, stateless, UDP-based protocol that uses JSON as the "mime type".
@@ -192,7 +203,9 @@ Because we use JSON as the "mime type", the name strings should be UTF-8 encoded
   -> {"success": false, "what": "error description"}
 ```
 
-Restarts GS. On the current implementation, this will always succeed.
+Restarts GS. If the GS machine is not up, we will inform you in the what string.
+If GS doesn't recognize our command, you will also be notified. In this case, maybe it's up
+to you to figure out the new command string to use.
 
 ### today_info
 
@@ -224,12 +237,14 @@ is kind of difficult.
 ```json
 {"command": "flush_notice"}
    -> {"success": true}
+   -> {"success": false, "what": "error description"}
 ```
 
 Using GS's port, we can inform it to get the latest notice immediately. This might be useful if
 too much network analysis breaks the network interface configuration and you cannot receive
-notifications at all. Because of the implementation, we cannot tell whether the command really took
-effect. We can only guarantee that a datagram will be sent.
+notifications at all.
+
+For the error scenarios, see `restart_gs`.
 
 ### doggie_stick
 

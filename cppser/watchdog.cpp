@@ -56,7 +56,16 @@ namespace Spirit {
             return;
         // If we restart here, we can take advantage of the restarting time,
         // to avoid collision.
-        send_to_gs(mConfig, logfile, "$DoRestart");
+        // Because both exceptions can be fallen through without affecting the other code,
+        // so we handle them in this function instead of propagating them upward.
+        try {
+            send_to_gs(mConfig, logfile, "$DoRestart");
+        } catch (const NetworkError& ex) {
+            logfile << "Networking error when restarting GS: " << ex.what() << '\n';
+        } catch (const GSError& ex) {
+            logfile << "GS internal error when we asked it to restart, quite strange! Output:\n"
+                << ex.what() << '\n';
+        }
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
     }
@@ -65,7 +74,7 @@ namespace Spirit {
         // First, create a log file and report our existence.
         // Maybe std::endl will force the streams to flush, making the log up to date.
         // The performance overhead is negligible compared to 15 second polls.
-        Logfile log("watchdog.log");
+        Logfile log(select_logfile("watchdog", mConfig["keep_logs"]));
         log << "Watchdog launched." << std::endl;
         // Then read the config db for localdata's name and password
         std::string dbname, passwd;
@@ -98,7 +107,15 @@ namespace Spirit {
                 // Flush every loop.
                 LogSection log_section(log);
                 // Lessons that are nearing an end.
-                auto near_ending = near_exits(local_data);
+                std::vector<LessonInfo> near_ending;
+                try {
+                    near_ending = near_exits(local_data);
+                } catch (const SQLError& ex) {
+                    log << "Encountering SQL error when calling near_exits()\n"
+                        << "SQLError: " << ex.what() << '\n';
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["retry_wait"]));
+                    continue;
+                }
                 if (near_ending.empty() || near_ending.front().endtime == last_proc) {
                     // Nothing to do, or already processed.
                     std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));

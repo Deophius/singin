@@ -15,6 +15,9 @@ namespace Spirit {
 
     // Displays an error message.
     void error_dialog(std::string_view caption, std::string_view text);
+
+    // Kills the lock mouse "utility".
+    void kill_lock_mouse();
 }
 
 // Main function for the spirit program.

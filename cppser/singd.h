@@ -75,7 +75,7 @@ namespace Spirit {
         // As in the design, this daemon will occupy the "main thread", so
         // its function is called mainloop. Returns after receiving a quit
         // command
-        void mainloop(Watchdog& watchdog);
+        void mainloop(Watchdog& watchdog, Logfile& logfile);
     private:
         // Ref to the configuration var.
         const Spirit::Configuration& mConfig;
@@ -89,17 +89,17 @@ namespace Spirit {
         // For the structure of the request and responses, see dbserv/dbman.pyw.
         
         // sessid starts from 0
-        nlohmann::json handle_rep_abs(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_rep_abs(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_wrt_rec(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_today(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_today(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_restart(const nlohmann::json& request, Logfile& log) noexcept;
 
-        nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log);
+        nlohmann::json handle_notice(const nlohmann::json& request, Logfile& log) noexcept;
         
-        nlohmann::json handle_doggie(const nlohmann::json& request, Logfile& log, Watchdog& watchdog);
+        nlohmann::json handle_doggie(const nlohmann::json& request, Logfile& log, Watchdog& watchdog) noexcept;
     };
 
     // Pull out the helper functions to facilitate testing.
@@ -108,6 +108,11 @@ namespace Spirit {
 
     // Error class for network errors
     struct NetworkError : public std::runtime_error {
+        using std::runtime_error::runtime_error;
+    };
+
+    // Error class for GS errors
+    struct GSError : public std::runtime_error {
         using std::runtime_error::runtime_error;
     };
 
@@ -121,7 +126,7 @@ namespace Spirit {
     // in order to achieve reasonable timeout functionality (std::async wouldn't work because the future's
     // dtor waits in that case)
     // Because when this is executing in a different thread, the parent should be waiting,
-    // so we dare pass log files around.
+    // we dare pass log files around.
     nlohmann::json execute_request(
         const Configuration& config,
         const std::vector<Student>& absent,
@@ -145,9 +150,10 @@ namespace Spirit {
     );
 
     // This function sends a message to the GS port.
-    // Exception: NetworkError if errors related to socket occurs.
-    // However, because this function connects to localhost, even if the port specified
-    // has no sockets bound, there won't be an exception.
+    // Exception: NetworkError if errors related to socket occurs. For example, if GS
+    // isn't up to receive our command.
+    // GSError if the GS program says that the command has some problems with it.
+    // The what string of GSError will be exactly what it returned in the socket.
     void send_to_gs(const Configuration& config, Logfile& log, const std::string& msg);
 }
 
