@@ -126,7 +126,7 @@ namespace Spirit {
     // in order to achieve reasonable timeout functionality (std::async wouldn't work because the future's
     // dtor waits in that case)
     // Because when this is executing in a different thread, the parent should be waiting,
-    // so we dare pass log files around.
+    // we dare pass log files around.
     nlohmann::json execute_request(
         const Configuration& config,
         const std::vector<Student>& absent,
