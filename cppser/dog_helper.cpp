@@ -115,8 +115,7 @@ namespace Spirit {
         const Configuration& config,
         const std::vector<Student>& absent,
         const LessonInfo& lesson,
-        Logfile& logfile,
-        int timeout
+        Logfile& logfile
     ) {
         using PromType = std::promise<nlohmann::json>;
         std::shared_ptr<PromType> prom(new PromType());
@@ -137,7 +136,7 @@ namespace Spirit {
                 }
             }
         }, absent, lesson, prom).detach();
-        auto fut_status = fut.wait_for(std::chrono::seconds(timeout));
+        auto fut_status = fut.wait_for(std::chrono::seconds(config["timeout"]));
         if (fut_status == std::future_status::ready)
             return fut.get();
         else

@@ -79,7 +79,8 @@ The file is named `man.json`. A template looks like this:
     "intro": "Spirit version 3.1 is up!",
     "watchdog_poll": 15,
     "retry_wait": 3,
-    "keep_logs": 3
+    "keep_logs": 3,
+    "timeout": 5
 }
 ```
 
@@ -93,6 +94,7 @@ The file is named `man.json`. A template looks like this:
 * retry_wait: If the previous attempt to auto sign in failed because of network or database error,
   wait for `retry_wait` seconds before retrying.
 * keep_logs: The number of logs to keep before rotating over to an older one.
+* timeout: The timeout in seconds for the request to `url_stu_new`.
 
 ## Client configuration file
 
