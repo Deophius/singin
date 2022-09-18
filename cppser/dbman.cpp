@@ -150,6 +150,14 @@ namespace Spirit {
         return res;
     }
 
+    int CurrentClock::get_ticks() {
+        const auto ct = []{
+            auto t = std::time(nullptr);
+            return std::localtime(&t);
+        }();
+        return 3600 * ct->tm_hour + 60 * ct->tm_min + ct->tm_sec;
+    }
+
     IncrementalClock::IncrementalClock() {
         const auto ct = []{
             auto t = std::time(nullptr);
@@ -228,10 +236,10 @@ namespace Spirit {
         return row->get<std::string>(0);
     }
 
-    std::vector<Student> report_absent(Connection& conn, const std::string& lesson_id) {
+    std::vector<Student> report_absent(Connection& conn, const std::string& lesson_id, bool exclude_invalid) {
         using namespace std::literals;
         const std::string sql = "select 学生编号, 学生名称 from 上课考勤 where KeChengXinXi = '"s
-            + lesson_id + "'and 打卡时间 is null";
+            + lesson_id + "'and 打卡时间 is null" + (exclude_invalid ? " and 是否排除考勤 = 0" : "");
         Statement stmt(conn, sql);
         std::vector<Student> ans;
         while (true) {

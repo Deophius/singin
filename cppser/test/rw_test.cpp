@@ -13,7 +13,7 @@ int main() {
     for (auto&& lesson : lessons) {
         fout << "Lesson " << lesson.id << " finishes at " << lesson.endtime << " has anpai " << lesson.anpai << '\n';
     }
-    auto absent = Spirit::report_absent(conn, lessonid);
+    auto absent = Spirit::report_absent(conn, lessonid, true);
     for (auto&& [name, cardnum] : absent) {
         fout << name << ' ' << cardnum << '\n';
     }
