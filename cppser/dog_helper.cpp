@@ -45,8 +45,9 @@ namespace Spirit {
     ) {
         namespace asio = boost::asio;
         std::string url, host;
+        const auto thread_id = std::this_thread::get_id();
+        logfile << thread_id << " set out to execute request.\n";
         parse_url(config, host, url);
-        logfile << "host is " << host << "\nurl is " << url << std::endl;
         // The request body
         const std::string req_body = [&]{
             nlohmann::json j;
@@ -56,7 +57,6 @@ namespace Spirit {
             j["faceversion"] = 2;
             return j.dump();
         }();
-        logfile << "req_body:\n" << req_body << std::endl;
         // See example, sync HTTP client
         asio::io_context ioc;
         asio::ip::tcp::resolver resolver(ioc);
@@ -77,20 +77,20 @@ namespace Spirit {
         } catch (const boost::system::system_error& ex) {
             throw NetworkError(ex.what());
         }
-        logfile << "Connected to the school server.\n";
+        logfile << thread_id << " connected to the school server.\n";
         try {
             asio::write(socket, req);
         } catch (const boost::system::system_error& ex) {
             throw NetworkError(ex.what());
         }
-        logfile << "Request written.\n";
+        logfile << thread_id << " has written the request.\n";
         // Start the receive section
         asio::streambuf response;
         boost::system::error_code ec;
         asio::read(socket, response, ec);
         if (ec && ec != asio::error::eof)
             throw NetworkError(boost::system::system_error(ec).what());
-        logfile << "Received response.\n";
+        logfile << thread_id << " received response.\n";
         std::istream resp_stream(&response);
         // Now start the first line
         int status_code = 0;
@@ -106,8 +106,7 @@ namespace Spirit {
             if (currline.size())
                 lastline = currline;
         }
-        logfile << "Done processing.\n";
-        logfile << "Last line length: " << lastline.size() << '\n';
+        logfile << thread_id << " reports last line length: " << lastline.size() << '\n';
         return nlohmann::json::parse(lastline);
     }
 
@@ -115,8 +114,7 @@ namespace Spirit {
         const Configuration& config,
         const std::vector<Student>& absent,
         const LessonInfo& lesson,
-        Logfile& logfile,
-        int timeout
+        Logfile& logfile
     ) {
         using PromType = std::promise<nlohmann::json>;
         std::shared_ptr<PromType> prom(new PromType());
@@ -137,7 +135,7 @@ namespace Spirit {
                 }
             }
         }, absent, lesson, prom).detach();
-        auto fut_status = fut.wait_for(std::chrono::seconds(timeout));
+        auto fut_status = fut.wait_for(std::chrono::seconds(config["timeout"]));
         if (fut_status == std::future_status::ready)
             return fut.get();
         else
@@ -150,7 +148,6 @@ namespace Spirit {
         asio::ip::udp::socket socket(ioc);
         socket.open(asio::ip::udp::v4());
         asio::ip::udp::endpoint addr(asio::ip::address::from_string("127.0.0.1"), gs_port);
-        std::exception_ptr exptr;
         try {
             socket.send_to(asio::buffer(std::move(msg)), addr);
             std::array<char, 128> buff;
