@@ -25,7 +25,7 @@ namespace Spirit {
         mPauseToken = false;
     }
 
-    void Watchdog::process_lesson(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
+    void Watchdog::simul_sign(Connection& conn, const LessonInfo& lesson, Logfile& logfile) {
         auto absent = report_absent(conn, lesson.id);
         // The JSON result from server
         auto stu_new = get_stu_new(mConfig, absent, lesson, logfile);
@@ -68,6 +68,22 @@ namespace Spirit {
         }
         RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
         write_record(conn, lesson.id, need_card, clock);
+    }
+
+    void Watchdog::local_sign(Connection& localdata, const LessonInfo& lesson, Logfile& logfile) {
+        auto need_card = report_absent(localdata, lesson.id, true);
+        logfile << "Need card: " << need_card.size() << '\n';
+        RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
+        write_record(localdata, lesson.id, need_card, clock);
+        // See the comment above
+        try {
+            send_to_gs(mConfig, logfile, "$DoRestart");
+        } catch (const NetworkError& ex) {
+            logfile << "Networking error when restarting GS: " << ex.what() << '\n';
+        } catch (const GSError& ex) {
+            logfile << "GS internal error when we asked it to restart, quite strange! Output:\n"
+                << ex.what() << '\n';
+        }
     }
 
     void Watchdog::worker() {
@@ -123,8 +139,13 @@ namespace Spirit {
                 }
                 auto& lesson = near_ending.front();
                 try {
-                    log << "Start processing lesson " << lesson.anpai << '\n';
-                    process_lesson(local_data, lesson, log);
+                    if (lesson.endtime - CurrentClock().get_ticks() >= 90) {
+                        log << "Start web-based processing lesson " << lesson.anpai << '\n';
+                        simul_sign(local_data, lesson, log);
+                    } else {
+                        log << "Too impatient, resort to local sign in!\n";
+                        local_sign(local_data, lesson, log);
+                    }
                     // Now we have a good session
                     log << "process_lesson returned successfully.\n";
                     last_proc = lesson.endtime;

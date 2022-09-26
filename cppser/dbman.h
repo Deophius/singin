@@ -173,6 +173,8 @@ namespace Spirit {
     public:
         [[nodiscard]] virtual std::string operator() () override;
 
+        [[nodiscard]] int get_ticks();
+
         virtual ~CurrentClock() = default;
     };
 
@@ -232,7 +234,8 @@ namespace Spirit {
     };
 
     // Gets a vector of Students who are still absent.
-    std::vector<Student> report_absent(Connection& conn, const std::string& lesson_id);
+    std::vector<Student> report_absent(Connection& conn,
+        const std::string& lesson_id, bool exclude_invalid = false);
 
     // Writes records to the database using the given clock for the given names
     // for the given lesson. (Whew)
