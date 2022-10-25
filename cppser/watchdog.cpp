@@ -106,6 +106,8 @@ namespace Spirit {
                 << "ex.what(): " << ex.what() << '\n';
             return;
         }
+        // Start the cycle with a poll enables us to turn off watchdog with a large poll value.
+        std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));
         try {
             Connection local_data(dbname, passwd);
             // The last lesson processed, expressed as endtime.
@@ -118,8 +120,10 @@ namespace Spirit {
                     return;
                 }
                 // Then check if paused
-                if (mPauseToken)
+                if (mPauseToken) {
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));
                     continue;
+                }
                 // Flush every loop.
                 LogSection log_section(log);
                 // Lessons that are nearing an end.
@@ -149,6 +153,7 @@ namespace Spirit {
                     // Now we have a good session
                     log << "process_lesson returned successfully.\n";
                     last_proc = lesson.endtime;
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));
                 } catch (const NetworkError& ex) {
                     // Network error means that we can try again.
                     log << "NetworkError: " << ex.what() << '\n';
@@ -157,10 +162,13 @@ namespace Spirit {
                     log << "logic_error: " << ex.what() << '\n';
                     // Very bad config file, just skip it
                     last_proc = lesson.endtime;
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["retry_wait"]));
                 } catch (const nlohmann::json::parse_error& ex) {
                     log << "Wrong format from server: " << ex.what() << '\n';
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["retry_wait"]));
                 } catch (const SQLError& ex) {
                     log << "SQL Error: " << ex.what() << '\n';
+                    std::this_thread::sleep_for(std::chrono::seconds(mConfig["retry_wait"]));
                 }
             }
         } catch (const ErrorOpeningDatabase& ex) {
