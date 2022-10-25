@@ -55,10 +55,21 @@ namespace Spirit {
             }
             return true;
         };
+        auto check_bool = [&config](const char* entry) {
+            if (!config.contains(entry)) {
+                error_dialog("Missing entry", entry + " expected, but not found!"s);
+                return false;
+            }
+            if (!config[entry].is_boolean()) {
+                error_dialog("Type error", entry + " should be a bool!"s);
+                return false;
+            }
+            return true;
+        };
         return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
             && check_str("dbname") && check_str("passwd") && check_str("intro")
             && check_int("watchdog_poll") && check_int("retry_wait")
-            && check_int("keep_logs") && check_int("timeout");
+            && check_int("keep_logs") && check_int("timeout") && check_bool("auto_watchdog");
     }
 
     void error_dialog(std::string_view caption, std::string_view text) {
@@ -123,6 +134,8 @@ int main() {
     Logfile logfile(logname, std::ios::out | std::ios::app);
     Watchdog watchdog(config);
     Singer singer(config);
+    if (!config["auto_watchdog"])
+        watchdog.pause();
     watchdog.start();
     singer.mainloop(watchdog, logfile);
 }
