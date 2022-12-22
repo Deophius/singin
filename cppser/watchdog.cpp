@@ -106,8 +106,6 @@ namespace Spirit {
                 << "ex.what(): " << ex.what() << '\n';
             return;
         }
-        // Start the cycle with a poll enables us to turn off watchdog with a large poll value.
-        std::this_thread::sleep_for(std::chrono::seconds(mConfig["watchdog_poll"]));
         try {
             Connection local_data(dbname, passwd);
             // The last lesson processed, expressed as endtime.
@@ -129,7 +127,7 @@ namespace Spirit {
                 // Lessons that are nearing an end.
                 std::vector<LessonInfo> near_ending;
                 try {
-                    near_ending = near_exits(local_data);
+                    near_ending = near_exits(local_data, mConfig["simul_limit"]);
                 } catch (const SQLError& ex) {
                     log << "Encountering SQL error when calling near_exits()\n"
                         << "SQLError: " << ex.what() << '\n';
@@ -143,7 +141,7 @@ namespace Spirit {
                 }
                 auto& lesson = near_ending.front();
                 try {
-                    if (lesson.endtime - CurrentClock().get_ticks() >= 90) {
+                    if (lesson.endtime - CurrentClock().get_ticks() >= mConfig["local_limit"]) {
                         log << "Start web-based processing lesson " << lesson.anpai << '\n';
                         simul_sign(local_data, lesson, log);
                     } else {

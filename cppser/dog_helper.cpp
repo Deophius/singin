@@ -7,11 +7,11 @@
 #include <regex>
 
 namespace Spirit {
-    std::vector<LessonInfo> near_exits(Connection& conn) {
+    std::vector<LessonInfo> near_exits(Connection& conn, int sec) {
         std::vector<LessonInfo> ans;
         const std::string sql = "select 考勤结束时间, ID, 安排ID from 课程信息 where "
             "考勤结束时间 > datetime('now', 'localtime') and "
-            "考勤结束时间 < datetime('now', 'localtime', '3 minutes')";
+            "考勤结束时间 < datetime('now', 'localtime', '" + std::to_string(sec) + " seconds')";
         Statement stmt(conn, sql);
         while (true) {
             auto row = stmt.next();

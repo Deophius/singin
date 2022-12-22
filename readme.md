@@ -81,7 +81,9 @@ The file is named `man.json`. A template looks like this:
     "retry_wait": 3,
     "keep_logs": 3,
     "timeout": 5,
-    "auto_watchdog": true
+    "auto_watchdog": true,
+    "simul_limit": 90,
+    "local_limit": 60
 }
 ```
 
@@ -98,6 +100,9 @@ The file is named `man.json`. A template looks like this:
 * timeout: The timeout in seconds for the request to `url_stu_new`.
 * auto_watchdog: Specifies the state of the watchdog when the program launches. If set to false,
   watchdog will be paused. You can control the state with `dbgui` at any time.
+* simul_limit: Controls the threshold for web-based sign in attempts. The first lesson ending in less than
+  `simul_limit` seconds but more than `local_limit` will be subjected to web-based sign in.
+* local_limit: Lessons ending in less than `local_limit` seconds will be resorted to local DB based sign in.
 
 ## Client configuration file
 
