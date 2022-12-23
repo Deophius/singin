@@ -66,11 +66,18 @@ namespace Spirit {
             }
             return true;
         };
-        return check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
+        bool exists = check_int("gs_port") && check_int("serv_port") && check_str("url_stu_new")
             && check_str("dbname") && check_str("passwd") && check_str("intro")
             && check_int("watchdog_poll") && check_int("retry_wait")
             && check_int("keep_logs") && check_int("timeout") && check_bool("auto_watchdog")
             && check_int("simul_limit") && check_int("local_limit");
+        if (!exists)
+            return false;
+        if (config["simul_limit"] < config["local_limit"]) {
+            error_dialog("Value error", "simul_limit >= local_limit not satisfied!");
+            return false;
+        }
+        return true;
     }
 
     void error_dialog(std::string_view caption, std::string_view text) {
@@ -115,14 +122,13 @@ int main() {
         }
         try {
             istr >> config;
-        } catch (const decltype(config)::parse_error& ex) {
+        } catch (const Configuration::parse_error& ex) {
             error_dialog("Config error", ex.what());
             logfile << "Config error: " << ex.what();
             return 1;
         }
         istr.close();
         if (!validate(config)) {
-            error_dialog("Config error", "Error with the man.json configuration file!");
             logfile << "Config error: didn't pass the validator test\n";
             return 1;
         }

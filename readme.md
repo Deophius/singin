@@ -104,6 +104,9 @@ The file is named `man.json`. A template looks like this:
   `simul_limit` seconds but more than `local_limit` will be subjected to web-based sign in.
 * local_limit: Lessons ending in less than `local_limit` seconds will be resorted to local DB based sign in.
 
+Note that the program requires `simul_limit >= local_limit`, because local sign in is supposed to be a kind
+of last resort.
+
 ## Client configuration file
 
 This file is called `cli.json`, with a template given below:

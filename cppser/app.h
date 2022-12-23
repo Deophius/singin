@@ -10,7 +10,8 @@ namespace Spirit {
     void hide_window() noexcept;
 
     // Validates a configuration. If all the required entries are present and
-    // of the correct type, returns true. Returns false otherwise.
+    // of the correct type and their values are reasonable,  returns true.
+    // Returns false otherwise.
     bool validate(const Configuration& config);
 
     // Displays an error message.
