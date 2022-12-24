@@ -110,8 +110,8 @@ namespace Spirit {
     };
 
     // Pull out the helper functions to facilitate testing.
-    // Returns the list of lessons that will end DK in less than 3 minutes.
-    std::vector<LessonInfo> near_exits(Connection& conn);
+    // Returns the list of lessons that will end DK in less than sec seconds.
+    std::vector<LessonInfo> near_exits(Connection& conn, int sec);
 
     // Error class for network errors
     struct NetworkError : public std::runtime_error {
