@@ -36,12 +36,12 @@ namespace Spirit {
                 req_buf.commit(serv_sock.receive_from(req_buf.prepare(1024), client));
                 std::istream rfile(&req_buf);
                 rfile >> request;
-                logfile << client << ": " << request.dump() << '\n';
+                logfile << client << ": " << request.dump() << std::endl;
             } catch (const boost::system::system_error& ex) {
-                logfile << ex.what() << '\n';
+                logfile << ex.what() << std::endl;
                 continue;
             } catch (nlohmann::json::parse_error& ex) {
-                logfile << ex.what() << '\n';
+                logfile << ex.what() << std::endl;
                 result["success"] = false;
                 result["what"] = "Unrecognized format, "s + ex.what();
                 dispatch = false;
