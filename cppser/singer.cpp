@@ -10,7 +10,7 @@ namespace Spirit {
         mConfig(config)
     {}
 
-    void Singer::mainloop(Watchdog& watchdog, Logfile& logfile) try {
+    void Singer::mainloop(Watchdog& watchdog, Logfile& logfile) {
         namespace asio = boost::asio;
         using asio::ip::udp;
         // If intro or serv_port are missing, no need to go on.
@@ -76,11 +76,13 @@ namespace Spirit {
                 }
             }
             auto result_dumped = result.dump();
-            logfile << result_dumped << '\n';
-            serv_sock.send_to(boost::asio::buffer(result_dumped), client);
+            logfile << "Generated response: " << result_dumped << std::endl;
+            try {
+                serv_sock.send_to(boost::asio::buffer(result_dumped), client);
+            } catch (const boost::system::system_error& ex) {
+                logfile << "When sending response to client: " << ex.what() << std::endl;
+            }
         }
-    } catch (const std::exception& ex) {
-        logfile << "Unexpected exception in Singer::mainloop(): " << ex.what() << std::endl;
     }
 
     json Singer::handle_rep_abs(const json& request, Logfile& log) noexcept {
