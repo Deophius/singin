@@ -73,8 +73,6 @@ namespace Spirit {
     void Watchdog::local_sign(Connection& localdata, const LessonInfo& lesson, Logfile& logfile) {
         auto need_card = report_absent(localdata, lesson.id, true);
         logfile << "Need card: " << need_card.size() << '\n';
-        RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
-        write_record(localdata, lesson.id, need_card, clock);
         // See the comment above
         try {
             send_to_gs(mConfig, logfile, "$DoRestart");
@@ -84,6 +82,8 @@ namespace Spirit {
             logfile << "GS internal error when we asked it to restart, quite strange! Output:\n"
                 << ex.what() << '\n';
         }
+        RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
+        write_record(localdata, lesson.id, need_card, clock);
     }
 
     void Watchdog::worker() {
