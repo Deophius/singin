@@ -120,10 +120,10 @@ namespace Spirit {
         try {
             const auto lessons = get_lesson(*mLocalData);
             const int sessid = request.at("sessid");
-            std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
-            IncrementalClock clock;
             if (sessid < 0 || sessid >= lessons.size())
                 throw std::out_of_range("sessid out of range!");
+            std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
+            IncrementalClock clock;
             write_record(*mLocalData, lessons[sessid].id, std::move(req_names), clock);
             ans["success"] = true;
         } catch (const std::out_of_range& ex) {
