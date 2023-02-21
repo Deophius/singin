@@ -258,7 +258,9 @@ namespace Spirit {
     ) {
         std::string sql;
         using namespace std::literals;
-        Statement(conn, "begin transaction").next();
+        // Use an exclusive transaction so that GS can't see a record that was already
+        // signed in by us but didn't reach the database.
+        Statement(conn, "begin exclusive transaction").next();
         // RAII type for ending the transaction
         struct TransRAII {
             TransRAII(Connection& conn) : mConn(conn) {}
@@ -287,7 +289,7 @@ namespace Spirit {
     ) {
         std::string sql;
         using namespace std::literals;
-        Statement(conn, "begin transaction").next();
+        Statement(conn, "begin exclusive transaction").next();
         // RAII type for ending the transaction
         struct TransRAII {
             TransRAII(Connection& conn) : mConn(conn) {}
