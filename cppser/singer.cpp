@@ -10,7 +10,7 @@ namespace Spirit {
         mConfig(config)
     {}
 
-    void Singer::mainloop(Watchdog& watchdog, Logfile& logfile) {
+    void Singer::mainloop(Watchdog& watchdog, Logfile& logfile) try {
         namespace asio = boost::asio;
         using asio::ip::udp;
         // If intro or serv_port are missing, no need to go on.
@@ -79,6 +79,8 @@ namespace Spirit {
             logfile << result_dumped << '\n';
             serv_sock.send_to(boost::asio::buffer(result_dumped), client);
         }
+    } catch (const std::exception& ex) {
+        logfile << "Unexpected exception in Singer::mainloop(): " << ex.what() << std::endl;
     }
 
     json Singer::handle_rep_abs(const json& request, Logfile& log) noexcept {
@@ -102,15 +104,19 @@ namespace Spirit {
         } catch (const SQLError& ex) {
             ans["success"] = false;
             ans["what"] = ex.what();
+        } catch (const std::exception& ex) {
+            log << "Unexpected exception in handle_rep_abs()\n";
+            ans["what"] = ex.what();
+            ans["success"] = false;
         }
         return ans;
     }
 
     json Singer::handle_wrt_rec(const json& request, Logfile& log) noexcept {
-        const auto lessons = get_lesson(*mLocalData);
         json ans;
         ans["success"] = false;
         try {
+            const auto lessons = get_lesson(*mLocalData);
             const int sessid = request.at("sessid");
             std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
             IncrementalClock clock;
@@ -149,6 +155,7 @@ namespace Spirit {
         } catch (const SQLError& ex) {
             ans["what"] = "SQL error: "s + ex.what();
         } catch (const std::exception& ex) {
+            log << "Unexpected std::exception in handle_today()\n";
             ans["what"] = ex.what();
         }
         return ans;
@@ -162,6 +169,9 @@ namespace Spirit {
             return json({{ "success", false }, { "what", ex.what() }});
         } catch (const GSError&) {
             return json({{ "success", false }, { "what", "GS internal error, see logs." }});
+        } catch (const std::exception& ex) {
+            log << "unexpected '" << ex.what() << "' in handle_restart()\n";
+            return json({{ "success", false }, { "what", "UKE, see logs." }});
         }
     }
 
@@ -173,6 +183,9 @@ namespace Spirit {
             return json({{ "success", false }, { "what", ex.what() }});
         } catch (const GSError&) {
             return json({{ "success", false }, { "what", "GS internal error, see logs." }});
+        } catch (const std::exception& ex) {
+            log << "Unexpected std::exception in Singer::handle_notice()\n";
+            return json({{ "success", false }, {"what", "Unexpected exception: "s + ex.what() }});
         }
     }
 
@@ -188,6 +201,10 @@ namespace Spirit {
         } catch (const std::out_of_range& ex) {
             ans["success"] = false;
             ans["what"] = "Missing argument: "s + ex.what();
+        } catch (const std::exception& ex) {
+            ans["success"] = false;
+            log << "Unknown error: " << ex.what() << '\n';
+            ans["what"] = "Unknown error, see logs.";
         }
         return ans;
     }
