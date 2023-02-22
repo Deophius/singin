@@ -11,11 +11,29 @@ namespace Spirit {
     static bool check_db(const Configuration& config) {
         try {
             Connection conn(config["dbname"], config["passwd"]);
-            Statement(conn, "select count(type) from sqlite_master").next();
-            Statement(conn, "select count(学生名称), count(打卡时间), count(学生编号) from 上课考勤")
-                .next();
-            Statement(conn, "select count(安排ID), count(考勤结束时间), count(ID) from 课程信息").next();
-            Statement(conn, "select count(TerminalID) from Local_Visual_Publish").next();
+            // The number of retries
+            int retry_cnt = 0;
+            start_testing:
+            try {
+                Statement(conn, "select count(type) from sqlite_master").next();
+                Statement(conn, "select count(学生名称), count(打卡时间), count(学生编号) from 上课考勤")
+                    .next();
+                Statement(conn, "select count(安排ID), count(考勤结束时间), count(ID) from 课程信息").next();
+                Statement(conn, "select count(TerminalID) from Local_Visual_Publish").next();
+            } catch (const SQLError& ex) {
+                if (retry_cnt == 100) {
+                    // Too much, just give up
+                    throw;
+                }
+                if (sqlite3_errcode(conn) == SQLITE_BUSY || sqlite3_errcode(conn) == SQLITE_LOCKED) {
+                    ::Sleep(100);
+                    ++retry_cnt;
+                    goto start_testing;
+                } else {
+                    // Not an exception we could handle
+                    throw;
+                }
+            }
             return true;
         } catch (const ErrorOpeningDatabase& ex) {
             error_dialog("Error opening database", ex.what());
@@ -133,7 +151,7 @@ int main() {
             return 1;
         }
         if (!check_db(config))
-            logfile << "Warning: database is corrupt!\n";
+            logfile << "Warning: database might be corrupt!\n";
     }
     // Now we can be absolutely sure that keep_logs exist and is larger than 0.
     auto logname = select_logfile("singer", config["keep_logs"]);
