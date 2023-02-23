@@ -106,6 +106,7 @@ namespace Spirit {
                 << "ex.what(): " << ex.what() << '\n';
             return;
         }
+        loop_start:
         try {
             Connection local_data(dbname, passwd);
             // The last lesson processed, expressed as endtime.
@@ -174,7 +175,8 @@ namespace Spirit {
                 << "Exiting because of failure.\n";
         } catch (const std::exception& ex) {
             log << "Unexpected std::exception: " << ex.what() << '\n';
-            log << "Exiting!\n";
+            log << "Restarting watchdog!\n";
+            goto loop_start;
         }
     }
 }
