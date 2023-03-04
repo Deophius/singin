@@ -258,7 +258,19 @@ namespace Spirit {
     ) {
         std::string sql;
         using namespace std::literals;
-        Statement(conn, "begin transaction").next();
+        // Use an exclusive transaction so that GS can't see a record that was already
+        // signed in by us but didn't reach the database.
+        Statement(conn, "begin exclusive transaction").next();
+        // RAII type for ending the transaction
+        struct TransRAII {
+            TransRAII(Connection& conn) : mConn(conn) {}
+
+            virtual ~TransRAII() {
+                Statement(mConn, "end transaction").next();
+            }
+
+            Connection& mConn;
+        } sentry(conn);
         for (auto&& name : names) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
@@ -269,7 +281,6 @@ namespace Spirit {
                 + "'";
             Statement(conn, sql).next();
         }
-        Statement(conn, "end transaction").next();
     }
 
     // Some highly redundant code
@@ -278,7 +289,17 @@ namespace Spirit {
     ) {
         std::string sql;
         using namespace std::literals;
-        Statement(conn, "begin transaction").next();
+        Statement(conn, "begin exclusive transaction").next();
+        // RAII type for ending the transaction
+        struct TransRAII {
+            TransRAII(Connection& conn) : mConn(conn) {}
+
+            virtual ~TransRAII() {
+                Statement(mConn, "end transaction").next();
+            }
+
+            Connection& mConn;
+        } sentry(conn);
         for (auto&& [unused, id] : stu) {
             sql = "update 上课考勤 set 打卡时间='"s
                 + clock()
@@ -289,6 +310,5 @@ namespace Spirit {
                 + "'";
             Statement(conn, sql).next();
         }
-        Statement(conn, "end transaction").next();
     }
 }

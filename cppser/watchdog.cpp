@@ -73,8 +73,6 @@ namespace Spirit {
     void Watchdog::local_sign(Connection& localdata, const LessonInfo& lesson, Logfile& logfile) {
         auto need_card = report_absent(localdata, lesson.id, true);
         logfile << "Need card: " << need_card.size() << '\n';
-        RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
-        write_record(localdata, lesson.id, need_card, clock);
         // See the comment above
         try {
             send_to_gs(mConfig, logfile, "$DoRestart");
@@ -84,6 +82,8 @@ namespace Spirit {
             logfile << "GS internal error when we asked it to restart, quite strange! Output:\n"
                 << ex.what() << '\n';
         }
+        RandomClock clock(lesson.endtime - 300, lesson.endtime - 120);
+        write_record(localdata, lesson.id, need_card, clock);
     }
 
     void Watchdog::worker() {
@@ -106,6 +106,7 @@ namespace Spirit {
                 << "ex.what(): " << ex.what() << '\n';
             return;
         }
+        loop_start:
         try {
             Connection local_data(dbname, passwd);
             // The last lesson processed, expressed as endtime.
@@ -174,7 +175,8 @@ namespace Spirit {
                 << "Exiting because of failure.\n";
         } catch (const std::exception& ex) {
             log << "Unexpected std::exception: " << ex.what() << '\n';
-            log << "Exiting!\n";
+            log << "Restarting watchdog!\n";
+            goto loop_start;
         }
     }
 }

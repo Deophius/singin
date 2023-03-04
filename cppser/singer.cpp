@@ -36,12 +36,12 @@ namespace Spirit {
                 req_buf.commit(serv_sock.receive_from(req_buf.prepare(1024), client));
                 std::istream rfile(&req_buf);
                 rfile >> request;
-                logfile << client << ": " << request.dump() << '\n';
+                logfile << client << ": " << request.dump() << std::endl;
             } catch (const boost::system::system_error& ex) {
-                logfile << ex.what() << '\n';
+                logfile << ex.what() << std::endl;
                 continue;
             } catch (nlohmann::json::parse_error& ex) {
-                logfile << ex.what() << '\n';
+                logfile << ex.what() << std::endl;
                 result["success"] = false;
                 result["what"] = "Unrecognized format, "s + ex.what();
                 dispatch = false;
@@ -76,8 +76,12 @@ namespace Spirit {
                 }
             }
             auto result_dumped = result.dump();
-            logfile << result_dumped << '\n';
-            serv_sock.send_to(boost::asio::buffer(result_dumped), client);
+            logfile << "Generated response: " << result_dumped << std::endl;
+            try {
+                serv_sock.send_to(boost::asio::buffer(result_dumped), client);
+            } catch (const boost::system::system_error& ex) {
+                logfile << "When sending response to client: " << ex.what() << std::endl;
+            }
         }
     }
 
@@ -102,20 +106,24 @@ namespace Spirit {
         } catch (const SQLError& ex) {
             ans["success"] = false;
             ans["what"] = ex.what();
+        } catch (const std::exception& ex) {
+            log << "Unexpected exception in handle_rep_abs()\n";
+            ans["what"] = ex.what();
+            ans["success"] = false;
         }
         return ans;
     }
 
     json Singer::handle_wrt_rec(const json& request, Logfile& log) noexcept {
-        const auto lessons = get_lesson(*mLocalData);
         json ans;
         ans["success"] = false;
         try {
+            const auto lessons = get_lesson(*mLocalData);
             const int sessid = request.at("sessid");
-            std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
-            IncrementalClock clock;
             if (sessid < 0 || sessid >= lessons.size())
                 throw std::out_of_range("sessid out of range!");
+            std::vector<std::string> req_names(request.at("name").begin(), request.at("name").end());
+            IncrementalClock clock;
             write_record(*mLocalData, lessons[sessid].id, std::move(req_names), clock);
             ans["success"] = true;
         } catch (const std::out_of_range& ex) {
@@ -149,6 +157,7 @@ namespace Spirit {
         } catch (const SQLError& ex) {
             ans["what"] = "SQL error: "s + ex.what();
         } catch (const std::exception& ex) {
+            log << "Unexpected std::exception in handle_today()\n";
             ans["what"] = ex.what();
         }
         return ans;
@@ -162,6 +171,9 @@ namespace Spirit {
             return json({{ "success", false }, { "what", ex.what() }});
         } catch (const GSError&) {
             return json({{ "success", false }, { "what", "GS internal error, see logs." }});
+        } catch (const std::exception& ex) {
+            log << "unexpected '" << ex.what() << "' in handle_restart()\n";
+            return json({{ "success", false }, { "what", "UKE, see logs." }});
         }
     }
 
@@ -173,6 +185,9 @@ namespace Spirit {
             return json({{ "success", false }, { "what", ex.what() }});
         } catch (const GSError&) {
             return json({{ "success", false }, { "what", "GS internal error, see logs." }});
+        } catch (const std::exception& ex) {
+            log << "Unexpected std::exception in Singer::handle_notice()\n";
+            return json({{ "success", false }, {"what", "Unexpected exception: "s + ex.what() }});
         }
     }
 
@@ -188,6 +203,10 @@ namespace Spirit {
         } catch (const std::out_of_range& ex) {
             ans["success"] = false;
             ans["what"] = "Missing argument: "s + ex.what();
+        } catch (const std::exception& ex) {
+            ans["success"] = false;
+            log << "Unknown error: " << ex.what() << '\n';
+            ans["what"] = "Unknown error, see logs.";
         }
         return ans;
     }
